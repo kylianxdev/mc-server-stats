@@ -73,6 +73,10 @@ def wanted(rel: str) -> str | None:
         return None
     if rel in SPRITES:
         return SPRITES[rel]
+    # before 26.1 the armor trim palettes were in trims/color_palettes/
+    if rel.startswith("trims/color_palettes/"):
+        name = rel.rsplit("/", 1)[1]
+        return "palettes/trim_base.png" if name == "trim_palette.png" else f"palettes/trim/{name}"
     if re.fullmatch(r"(block|item)/[^/]+\.png", rel) or rel.startswith(FOLDERS):
         return rel
     return None
