@@ -100,19 +100,28 @@ function startBlueMap(bm) {
       if (!app?.mapViewer?.map) return setTimeout(ready, 250);
       bluemap = app;
       app.center = bm;
-      // every block up to the mountains on the horizon, not only the valley
-      app.mapViewer.data.loadedHiresViewDistance = Math.max(innerWidth < 700 ? 260 : 450, bm.distance * (innerWidth < 700 ? 1.3 : 2.2));  // less on phones
-      app.mapViewer.data.loadedLowresViewDistance = Math.max(2500, bm.distance * 10);
-      app.mapViewer.updateLoadedMapArea();
-      // BlueMap draws every frame of the screen (60 to 144 times a second) while the camera turns, also
-      // when the banner is scrolled away: 30 frames a second, and only while it can be seen
-      const viewer = app.mapViewer, inner = viewer.renderLoop;
+      const viewer = app.mapViewer, phone = innerWidth < 700;
+      // every block up to the mountains on the horizon, but only in front of the camera: a square
+      // around a point ahead of it (half the tiles of a square around the middle, the same view)
+      app.reach = phone ? 200 : 320;
+      app.ahead = phone ? 80 : 130;
+      const lowres = Math.max(2500, bm.distance * 10), load = viewer.loadMapArea.bind(viewer);
+      // BlueMap loads around the point the camera looks at, and resets the distances from its settings
+      viewer.loadMapArea = () => load(app.ahead_x ?? bm.x, app.ahead_z ?? bm.z, app.reach, lowres);
+      // sharp enough behind the title, without drawing four pixels for every pixel on retina screens
+      viewer.superSampling = Math.min(1, 1.5 / devicePixelRatio);
+      // BlueMap draws every frame of the screen (60 to 144 times a second), also when the banner is
+      // scrolled away. Now: 30 evenly spaced frames a second, turning the camera right before each one,
+      // and nothing while the banner can't be seen
+      const inner = viewer.renderLoop;
       let shown = 0;
       viewer.renderLoop = now => {
-        if (!visible || document.hidden || now - shown < 33) return requestAnimationFrame(viewer.renderLoop);
+        if (!visible || document.hidden || now - shown < 29) return requestAnimationFrame(viewer.renderLoop);
+        turn(Math.min(0.1, (now - (shown || now)) / 1000));
         shown = now;
         inner(now);
       };
+      turn(0);
       hero.classList.add("w3d", "bluemap");
       document.body.classList.add("w3d");
       new IntersectionObserver(([e]) => { visible = e.isIntersecting; wake(); }).observe(hero);
@@ -463,7 +472,7 @@ function resize() {
 }
 
 function wake() {
-  if (!renderer && !bluemap) return;
+  if (!renderer) return;  // BlueMap has its own loop
   const should = visible && !document.hidden && !still;
   if (should && !running) { running = true; last = 0; frame = requestAnimationFrame(loop); }
   if (!should) { running = false; cancelAnimationFrame(frame); }
@@ -472,26 +481,32 @@ function wake() {
 function loop(now) {
   if (!running) return;
   frame = requestAnimationFrame(loop);
-  if (now - drawn < (bluemap ? 33 : 45)) return;  // 20 to 30 frames per second is plenty for a slow camera and saves battery
+  if (now - drawn < 45) return;  // ~20 frames per second is plenty for a slow camera and saves battery
   drawn = now;
   draw(now);
 }
 
+/** Turns BlueMap's camera slowly around the valley, at one height, and keeps the blocks in front loaded. */
+function turn(dt) {
+  const viewer = bluemap.mapViewer, cm = viewer.controlsManager, c = bluemap.center;
+  if (!still) cm.rotation += dt * (Math.PI * 2 / 240);  // one round in four minutes
+  // BlueMap lets the camera follow the ground under it, which bobs up and down while turning:
+  // keep one height instead (checked every frame, BlueMap sets up its controls late)
+  const height = cm._controls?.mapHeight;
+  if (height && !height.fixed) { height.fixed = true; height.update = () => { cm.position.y = c.y; }; }
+  // aim a bit past the middle, so the homes sit in the lower half of the banner, under the title
+  const fx = Math.sin(cm.rotation), fz = -Math.cos(cm.rotation), k = c.distance * 0.3;
+  cm.position.x = c.x + fx * k;
+  cm.position.z = c.z + fz * k;
+  const lx = cm.position.x + fx * bluemap.ahead, lz = cm.position.z + fz * bluemap.ahead;
+  if (bluemap.ahead_x === undefined || Math.hypot(lx - bluemap.ahead_x, lz - bluemap.ahead_z) > 32) {  // a row of tiles every few seconds
+    bluemap.ahead_x = lx; bluemap.ahead_z = lz;
+    viewer.loadMapArea();
+  }
+}
+
 function draw(now) {
   const dt = Math.min(0.1, (now - (last || now)) / 1000); last = now;
-  if (bluemap) {  // BlueMap draws itself: just turn its camera slowly
-    const cm = bluemap.mapViewer.controlsManager, cam = bluemap.mapViewer.camera.position, c = bluemap.center;
-    if (!still) cm.rotation += dt * (Math.PI * 2 / 240);
-    // BlueMap lets the camera follow the ground under it, which bobs up and down while turning:
-    // keep one height instead (checked every frame, BlueMap sets up its controls late)
-    const height = cm._controls?.mapHeight;
-    if (height && !height.fixed) { height.fixed = true; height.update = () => { cm.position.y = c.y; }; }
-    // aim a bit past the middle, so the homes sit in the lower half of the banner, under the title
-    const dx = c.x - cam.x, dz = c.z - cam.z, l = Math.hypot(dx, dz) || 1, k = c.distance * 0.3;
-    cm.position.x = c.x + (dx / l) * k;
-    cm.position.z = c.z + (dz / l) * k;
-    return;
-  }
   if (!still) angle += dt * (Math.PI * 2 / 240);  // one round in four minutes
   // from the air: circling the valley, looking down at the homes in the middle
   const r = size * 1.05;
