@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # mc-server-stats installer
 #
-#   curl -fsSL https://raw.githubusercontent.com/OWNER/mc-server-stats/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/kylianxdev/mc-server-stats/main/install.sh | bash
 #   ./install.sh [options]
 #
 # Options:
@@ -15,7 +15,7 @@
 #   --update              update an existing installation (git pull, textures, restart)
 set -euo pipefail
 
-REPO_URL="${MCSTATS_REPO:-https://github.com/OWNER/mc-server-stats.git}"
+REPO_URL="${MCSTATS_REPO:-https://github.com/kylianxdev/mc-server-stats.git}"
 INSTALL_DIR="${HOME}/mc-server-stats"
 MC_DIR="" PORT="8200" LANG_CODE="" YES=0 SERVICE=1 DATAPACKS=1 UPDATE=0
 

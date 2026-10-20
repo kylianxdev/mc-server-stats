@@ -38,7 +38,7 @@ Private messages (`/msg`, `/tell`, …) are never shown, IP addresses are never 
 On the machine that runs your Minecraft server:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OWNER/mc-server-stats/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kylianxdev/mc-server-stats/main/install.sh | bash
 ```
 
 The installer finds your server, writes `config.toml`, downloads the textures, installs the datapacks, offers live
@@ -51,7 +51,7 @@ Update later with `~/mc-server-stats/install.sh --update`. All options: `install
 <summary>Manual installation</summary>
 
 ```bash
-git clone https://github.com/OWNER/mc-server-stats.git
+git clone https://github.com/kylianxdev/mc-server-stats.git
 cd mc-server-stats
 cp config.example.toml config.toml        # set minecraft.dir to your server folder
 python3 scripts/fetch_assets.py --config config.toml
