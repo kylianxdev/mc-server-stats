@@ -205,7 +205,15 @@ footer { text-align: center; color: #c9b39a; font-size: 18px; padding: 10px 16px
 .hidden { display: none !important; }
 @media (max-width: 600px) { .hero h1 { font-size: 20px; } .prof .nm { font-size: 18px; } .kpi .v { font-size: 32px; } }
 /* ---------- additions ---------- */
-#lang { margin-left: 8px; align-self: center; }
+/* language menu: a real Minecraft button with a map icon and a pixel arrow */
+.lang-btn { position: relative; padding-right: 34px; }
+.lang-btn::after { content: ""; position: absolute; right: 12px; top: 50%; width: 10px; height: 6px; margin-top: -3px; pointer-events: none;
+                   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%23e0e0e0' d='M0 0h10v2H8v2H6v2H4V4H2V2H0z'/%3E%3C/svg%3E") 0 0 / 100% 100%; }
+.lang-btn:hover::after, .lang-btn:focus-within::after { filter: sepia(1) saturate(3) brightness(1.1); }
+.lang-btn:focus-within { color: #ffffa0; border-image-source: url(/assets/gui/widget/button_highlighted.png); }
+#lang { appearance: none; -webkit-appearance: none; background: transparent; border: 0; outline: none; cursor: pointer;
+        font: inherit; color: inherit; text-shadow: inherit; padding: 0 4px; margin: 0; }
+#lang option { background: #1e1e1e; color: #e0e0e0; }
 h2.first { margin-top: 0; }
 .status { margin-top: 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .level { margin-top: 10px; max-width: 420px; }
