@@ -107,7 +107,7 @@ def make_handler(app: App):
 
 def serve(cfg: Config):
     if not (cfg.assets_dir / "block" / "dirt.png").exists():
-        log.warning("textures not found in %s — run scripts/fetch_assets.py first", cfg.assets_dir)
+        log.warning("textures not found in %s, run scripts/fetch_assets.py first", cfg.assets_dir)
     app = App(cfg)
     app.skins.start()
     httpd = ThreadingHTTPServer((cfg.host, cfg.port), make_handler(app))

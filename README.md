@@ -1,6 +1,6 @@
 # ⛏ mc-server-stats
 
-A live statistics website for your Minecraft server, styled like Minecraft itself — with real game
+A live statistics website for your Minecraft server, styled like Minecraft itself, with real game
 textures, 3D player skins wearing the armor they actually wear, leaderboards, AFK tracking and a
 "site level" that rewards what players achieve rather than how long they're online.
 
@@ -9,19 +9,19 @@ advancements, player data and the scoreboard). Works with Vanilla and Paper serv
 
 ## Features
 
-- **Live** — the page updates itself every 5 seconds: who's online, joins, deaths, advancements, equipment.
+- **Live**: the page updates itself every 5 seconds: who's online, joins, deaths, advancements, equipment.
 - **3D players** ([skinview3d](https://github.com/bs-community/skinview3d)) with their skin, active **cape**, and the
-  **armor they're wearing** — including dyed leather, **armor trims** with the real color palettes and elytras. Drag to rotate, pick an animation.
+  **armor they're wearing**, including dyed leather, **armor trims** with the real color palettes and elytras. Drag to rotate, pick an animation.
 - **Per player**: playtime per day and per hour of the day, sessions, equipment with enchantments, ~30 statistics with ranks,
   a timeline of advancements and deaths, and #1 badges.
-- **Site level** — XP for advancements, diamonds, ancient debris, building, variety of mobs defeated, gear, … with weights and caps
+- **Site level**: XP for advancements, diamonds, ancient debris, building, variety of mobs defeated, gear, … with weights and caps
   so farming one thing doesn't decide everything. Uses Minecraft's own XP formula. Also ranks *XP per hour*.
 - **Leaderboards** for every statistic, with spinning 3D heads.
-- **AFK meter** — a datapack that measures every second whether a player moves, looks around or does something.
-- **Log** — commands, operator history (who was ever op, admin commands with and without rights), whitelist/bans, warnings.
-- **Multilingual** — English, Nederlands, Español, Deutsch, Français. Item, mob, enchantment, trim and advancement names and even
+- **AFK meter**: a datapack that measures every second whether a player moves, looks around or does something.
+- **Log**: commands, operator history (who was ever op, admin commands with and without rights), whitelist/bans, warnings.
+- **Multilingual**: English, Nederlands, Español, Deutsch, Français. Item, mob, enchantment, trim and advancement names and even
   death messages come from Minecraft's official translations.
-- **Real Minecraft look** — dirt background, buttons, XP bar, advancement frames and item icons from the game.
+- **Real Minecraft look**: dirt background, buttons, XP bar, advancement frames and item icons from the game.
 
 ### Privacy by design
 Private messages (`/msg`, `/tell`, …) are never shown, IP addresses are never read, coordinates in commands are hidden
@@ -70,7 +70,7 @@ Copy the folders from `datapacks/` into `<server>/world/datapacks/` and run `/re
 | Datapack | What it does |
 |---|---|
 | `afk-meter` | Measures AFK time every second (needed for the AFK numbers) |
-| `armor-colors` | Players' name color follows their armor trim, otherwise their chestplate — in chat, tab list and above their head |
+| `armor-colors` | Players' name color follows their armor trim, otherwise their chestplate (in chat, tab list and above their head) |
 | `pretty-chat` | `<Steve> hi` becomes **Steve** » hi |
 
 The `pack.mcmeta` files are made for pack format 121 (Minecraft 26.x). For other versions, change `min_format`/`max_format`.
@@ -91,7 +91,7 @@ See `deploy/mc-server-stats.service` (systemd). To serve it on port 80/443, put 
 
 ## Configuration
 
-Everything is in `config.toml` — see [`config.example.toml`](config.example.toml): the server folder, port, site title,
+Everything is in `config.toml`. See [`config.example.toml`](config.example.toml): the server folder, port, site title,
 languages, privacy options and the AFK threshold.
 
 ## Extras
@@ -123,4 +123,4 @@ tests/        unit tests
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Not an official Minecraft product; not approved by or associated with Mojang or Microsoft.
+MIT, see [LICENSE](LICENSE). Not an official Minecraft product; not approved by or associated with Mojang or Microsoft.

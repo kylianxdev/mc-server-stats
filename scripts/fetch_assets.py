@@ -92,7 +92,7 @@ def main():
     languages = args.languages.split(",") if args.languages else cfg.languages
     version = args.version or detect_version(cfg.minecraft_dir)
     if not version:
-        sys.exit("Could not detect the Minecraft version — use --version")
+        sys.exit("Could not detect the Minecraft version, use --version")
 
     manifest = get_json(MANIFEST)
     entry = next((v for v in manifest["versions"] if v["id"] == version), None)
@@ -103,7 +103,7 @@ def main():
     print(f"Minecraft {version}: downloading client ({client['size'] // 1_000_000} MB)…")
     jar = get(client["url"])
     if hashlib.sha1(jar).hexdigest() != client["sha1"]:
-        sys.exit("Checksum of the client jar does not match — aborting")
+        sys.exit("Checksum of the client jar does not match, aborting")
 
     count = 0
     with zipfile.ZipFile(io.BytesIO(jar)) as z:

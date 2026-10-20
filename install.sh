@@ -110,7 +110,7 @@ if [ -z "$MC_DIR" ]; then
   fi
 fi
 MC_DIR=$(cd "$MC_DIR" && pwd) || die "Folder $MC_DIR does not exist"
-[ -f "$MC_DIR/server.properties" ] || die "No server.properties in $MC_DIR — is this a Minecraft server folder?"
+[ -f "$MC_DIR/server.properties" ] || die "No server.properties in $MC_DIR. Is this a Minecraft server folder?"
 WORLD=$(sed -n 's/^level-name=//p' "$MC_DIR/server.properties" | tr -d '\r')
 WORLD=${WORLD:-world}
 say "Server: $MC_DIR (world: $WORLD)"
@@ -150,7 +150,7 @@ if [ "$DATAPACKS" = 1 ] && [ -d "$MC_DIR/$WORLD" ]; then
       rm -rf "${MC_DIR:?}/$WORLD/datapacks/$pack"
       cp -r "datapacks/$pack" "$MC_DIR/$WORLD/datapacks/"
     done
-    say "Datapacks installed — type /reload in the server console (the nicer chat needs a restart)"
+    say "Datapacks installed. Type /reload in the server console (the nicer chat needs a restart)"
   fi
 fi
 
@@ -166,7 +166,7 @@ text = open(path).read()
 text = text.replace("player-auto-save:\n  max-per-tick: -1\n  rate: -1\n", "player-auto-save:\n  max-per-tick: 2\n  rate: 200\n", 1)
 open(path, "w").write(text)
 EOF
-    say "Done (backup: paper-global.yml.bak) — takes effect after the next server restart"
+    say "Done (backup: paper-global.yml.bak), takes effect after the next server restart"
   fi
 fi
 

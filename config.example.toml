@@ -1,4 +1,4 @@
-# mc-server-stats configuration — copy to config.toml and adjust.
+# mc-server-stats configuration: copy to config.toml and adjust.
 # Relative paths are relative to this file.
 
 [minecraft]

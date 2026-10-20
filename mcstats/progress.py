@@ -1,12 +1,12 @@
 """The "site level": points (site XP) for what a player achieved, NOT for how long they played.
 
-Every category has a weight (how relevant it is) and a cap, so a single thing — crafting
-80,000 items or farming 2,000 skeletons — can't decide everything. The level uses the real
+Every category has a weight (how relevant it is) and a cap, so a single thing (crafting
+80,000 items or farming 2,000 skeletons) can't decide everything. The level uses the real
 Minecraft experience formula, so the numbers feel familiar.
 """
 from __future__ import annotations
 
-# (key, site XP per unit, cap) — keys are stat keys from stats.py, plus "advancements" and "distance_km"
+# (key, site XP per unit, cap). Keys are stat keys from stats.py, plus "advancements" and "distance_km"
 WEIGHTS = [
     ("advancements", 60, None),
     ("diamond_ore", 6, 1500),

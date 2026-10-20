@@ -35,7 +35,7 @@ CROPS = {"wheat", "carrots", "potatoes", "beetroots", "nether_wart", "melon", "p
 WALK = ("walk_one_cm", "sprint_one_cm", "crouch_one_cm", "walk_on_water_one_cm", "walk_under_water_one_cm", "climb_one_cm")
 RIDE = ("boat_one_cm", "minecart_one_cm", "horse_one_cm", "pig_one_cm", "strider_one_cm", "happy_ghast_one_cm")
 
-# (key, function) — order is the order on the website
+# (key, function); the order is the order on the website
 STATS = [
     ("blocks_mined", lambda st: _total(st, "mined")),
     ("diamond_ore", lambda st: _total(st, "mined", lambda k: k.endswith("diamond_ore"))),

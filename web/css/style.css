@@ -1,4 +1,4 @@
-/* mc-server-stats — all textures come from the official Minecraft client (see scripts/fetch_assets.py) */
+/* mc-server-stats: all textures come from the official Minecraft client (see scripts/fetch_assets.py) */
 :root {
   --night1: #0b1026; --night2: #1b2550; --night3: #3b3f7a;
   --panel: rgba(0, 0, 0, .62); --panel2: rgba(255, 255, 255, .05);
