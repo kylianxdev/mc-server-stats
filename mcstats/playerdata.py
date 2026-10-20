@@ -33,13 +33,22 @@ def load_stats(cfg: Config) -> dict[str, dict]:
                        lambda f: json.loads(f.read_text())["stats"])
 
 
-def advancements_done(cfg: Config) -> dict[str, int]:
-    """Number of completed advancements per player (recipes and tab roots not counted)."""
-    def count(f: Path) -> int:
+def advancement_times(cfg: Config) -> dict[str, dict[str, str]]:
+    """Per player: {advancement id: when it was completed} (recipes not included).
+
+    Minecraft stores when every criterion was met; the advancement is done at the last one.
+    """
+    def read(f: Path) -> dict[str, str]:
         d = json.loads(f.read_text())
-        return sum(1 for k, v in d.items() if isinstance(v, dict) and v.get("done")
-                   and not k.startswith("minecraft:recipes/") and not k.endswith("/root"))
-    return _per_player(cfg.world_dir / "players" / "advancements", "*.json", uuid_names(cfg), count)
+        return {k.removeprefix("minecraft:"): max(v.get("criteria", {}).values(), default="")[:19]
+                for k, v in d.items()
+                if isinstance(v, dict) and v.get("done") and not k.startswith("minecraft:recipes/")}
+    return _per_player(cfg.world_dir / "players" / "advancements", "*.json", uuid_names(cfg), read)
+
+
+def advancements_done(times: dict[str, dict[str, str]]) -> dict[str, int]:
+    """Number of completed advancements per player (the tab roots don't count)."""
+    return {p: sum(1 for k in t if not k.endswith("/root")) for p, t in times.items()}
 
 
 def _item(it: dict | None) -> dict | None:
@@ -83,7 +92,9 @@ def equipment(cfg: Config) -> dict[str, dict]:
         walk(d.get("Inventory", []))
         walk(d.get("EnderItems", []))
         walk([v for v in eq.values() if isinstance(v, dict)])
-        return {**{slot: _item(eq.get(slot)) for slot in SLOTS}, "mainhand": _item(mainhand), "owned": owned}
+        dim = d.get("Dimension", "minecraft:overworld")
+        dim = {0: "overworld", -1: "the_nether", 1: "the_end"}.get(dim, dim) if isinstance(dim, int) else str(dim).removeprefix("minecraft:")
+        return {**{slot: _item(eq.get(slot)) for slot in SLOTS}, "mainhand": _item(mainhand), "dimension": dim, "owned": owned}
 
     return _per_player(cfg.world_dir / "players" / "data", "*.dat", uuid_names(cfg), read)
 

@@ -6,6 +6,9 @@ import { $, color, esc, onlineNow, tex } from "./util.js";
 import { playerCards, viewServer } from "./views/server.js";
 import { viewPlayer } from "./views/player.js";
 import { renderTable, viewLog } from "./views/log.js";
+import { viewVersus } from "./views/versus.js";
+import { advancementScreen, loadAdvancements } from "./views/advancements.js";
+import { updateSky } from "./sky.js";
 
 const POLL_MS = 5000;
 // remember the scroll position of every page, so "back" returns to the same spot
@@ -16,13 +19,25 @@ addEventListener("scroll", () => { scrollPos[currentHash] = scrollY; }, { passiv
 function route() {
   const h = decodeURIComponent(location.hash.slice(1));
   if (h.startsWith("player/")) { S.view = "player"; S.who = h.slice(7); }
+  else if (h.startsWith("versus")) { S.view = "versus"; [S.vsA, S.vsB] = h.split("/").slice(1); }
   else S.view = ["players", "log"].includes(h) ? h : "server";
   if (S.view === "log" && !S.data?.site?.show_log) S.view = "server";
   render();
 }
 
+// the world line under the title: day number and weather (the sky itself is drawn by sky.js)
+function renderSky() {
+  const w = S.data.world || {};
+  updateSky(w);
+  const weather = w.thundering ? "thunder" : w.raining ? "rain" : "clear";
+  $("world").innerHTML = w.day ? `<span>${tex("item/clock_00", "xs")} ${t("world.day", { n: w.day.toLocaleString() })}</span>
+    <span>${tex({ clear: "block/sunflower_front", rain: "item/water_bucket", thunder: "block/lightning_rod" }[weather], "xs")} ${t(`weather.${weather}`)}</span>
+    <span data-tip="${t("kpi.dragon")}">${tex("block/dragon_egg", "xs")} ${t(w.dragon_killed ? "world.dragon_dead" : "world.dragon_alive")}</span>` : "";
+}
+
 function renderChrome() {
   const site = S.data.site;
+  renderSky();
   document.title = site.title;
   $("title").textContent = site.title;
   $("tagline").textContent = site.tagline || "";
@@ -40,11 +55,12 @@ function render() {
   const keep = keepViewers(); // existing 3D players are reused instead of reloaded
   renderChrome();
   document.querySelectorAll("#nav [data-v]").forEach(b =>
-    b.classList.toggle("on", b.dataset.v === S.view || (S.view === "player" && b.dataset.v === "players")));
+    b.classList.toggle("on", b.dataset.v === S.view || (["player", "versus"].includes(S.view) && b.dataset.v === "players")));
   const app = $("app");
   if (S.view === "server") app.innerHTML = viewServer();
   else if (S.view === "players") app.innerHTML = `<h2 class="first">${tex("item/name_tag", "s")} ${t("section.choose")}</h2>` + playerCards();
   else if (S.view === "player") app.innerHTML = viewPlayer(S.who);
+  else if (S.view === "versus") app.innerHTML = viewVersus(decodeURIComponent(S.vsA || ""), decodeURIComponent(S.vsB || ""));
   else {
     const prev = $("q") ? { q: $("q").value, pf: $("pf").value, ao: $("ao").checked } : null;
     app.innerHTML = viewLog();
@@ -70,7 +86,7 @@ async function load() {
     if (txt === S.raw) return;
     const first = !S.data;
     S.raw = txt; S.data = JSON.parse(txt);
-    if (first) { await setLanguage(pickLanguage(S.data.site)); route(); return; }
+    if (first) { await Promise.all([setLanguage(pickLanguage(S.data.site)), loadAdvancements()]); route(); return; }
     if (S.view === "log" && document.activeElement?.closest?.(".tools")) { renderTable(); return; } // don't disturb typing
     const y = scrollY; render(); scrollTo(0, y);
     $("live").classList.add("flash"); setTimeout(() => $("live").classList.remove("flash"), 600);
@@ -83,8 +99,16 @@ async function load() {
 const go = v => { location.hash = v === "server" ? "#" : "#" + v; };
 $("nav").addEventListener("click", e => { const v = e.target.closest("[data-v]")?.dataset.v; if (v) go(v); });
 $("lang").addEventListener("change", async e => { await setLanguage(e.target.value); $("splash").textContent = ""; render(); });
+$("app").addEventListener("change", e => {
+  const pick = e.target.closest("[data-vs]");
+  if (!pick) return;
+  const a = pick.dataset.vs === "a" ? pick.value : S.vsA, b = pick.dataset.vs === "b" ? pick.value : S.vsB;
+  location.hash = `#versus/${encodeURIComponent(decodeURIComponent(a || ""))}/${encodeURIComponent(decodeURIComponent(b || ""))}`;
+});
 $("app").addEventListener("click", e => {
   if (e.target.closest("[data-armor]")) { S.showArmor = !S.showArmor; render(); return; }
+  const tab = e.target.closest("[data-advtab]");
+  if (tab) { S.advTab = tab.dataset.advtab; $("advScreen").innerHTML = advancementScreen(S.who); return; }
   const anim = e.target.closest(".btn[data-anim]");
   if (anim) { setAnimation(document.querySelector("canvas[data-big]"), anim.dataset.anim); return; }
   const el = e.target.closest("[data-log],[data-go],[data-p]");

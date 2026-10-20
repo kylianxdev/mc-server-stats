@@ -8,12 +8,15 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import __version__, demo, playerdata, scoreboard
+from . import __version__, demo, playerdata, scoreboard, social
+from .hall import hall_of_fame
+from .history import History, snapshot
+from .world import world_state
 from .config import Config
 from .logs import LogParser
 from .progress import progress
 from .skins import Skins
-from .stats import fun_stats, playtime
+from .stats import fun_stats, ores, playtime
 
 log = logging.getLogger(__name__)
 MIME = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
@@ -27,27 +30,41 @@ class App:
         self.demo = demo.data(cfg) if demo_mode else None  # made once: the demo doesn't change
         self.logs = LogParser(cfg)
         self.skins = Skins(cfg)
+        self.history = History(cfg)
 
     def data(self) -> dict:
         cfg = self.cfg
         if self.demo:
             return self.demo
-        base = self.logs.parse()
+        base = dict(self.logs.parse())
+        sessions = base.pop("_sessions")
         stats = playerdata.load_stats(cfg)
         fun = fun_stats(stats)
         equipment = playerdata.equipment(cfg)
+        adv_times = playerdata.advancement_times(cfg)
         board = scoreboard.read(cfg)
         online = {p for p, pr in base["profiles"].items() if pr["online"]}
+        prog = progress(fun, stats, equipment, playerdata.advancements_done(adv_times), base["profiles"])
+        times = playtime(stats)
+        snap = snapshot(fun, prog, times)
+        self.history.record(snap)
         out = {
             **base,
             "site": {"title": cfg.title, "tagline": cfg.tagline, "default_language": cfg.default_language,
                      "languages": cfg.languages, "show_log": cfg.show_log, "version": __version__},
-            "playtime": playtime(stats),
+            "playtime": times,
             "fun": fun,
             "afk": scoreboard.afk(cfg, board, online),
             "colors": scoreboard.team_colors(board),
             "armor": playerdata.public_equipment(equipment),
-            "progress": progress(fun, stats, equipment, playerdata.advancements_done(cfg), base["profiles"]),
+            "progress": prog,
+            "world": world_state(cfg),
+            "advancements": adv_times,
+            "hall": hall_of_fame(adv_times, base["profiles"]),
+            "buddies": social.buddies(sessions),
+            "pvp": social.pvp(base["profiles"]),
+            "ores": ores(stats),
+            "history": self.history.report(snap),
             "skins": self.skins.info(),
         }
         if not cfg.show_log:

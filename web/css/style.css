@@ -25,14 +25,6 @@ img, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
     radial-gradient(2px 2px at 65% 75%, #fff 50%, transparent 51%), radial-gradient(2px 2px at 45% 40%, #cfd8ff 50%, transparent 51%);
     animation: twinkle 4s steps(2) infinite; opacity: .8; }
 @keyframes twinkle { 50% { opacity: .45; } }
-.moon { position: absolute; top: 26px; right: 9%; width: 48px; height: 48px; background: #f4f1d0;
-        box-shadow: inset -12px -8px 0 #d8d3a8, inset 8px 8px 0 #fffbe6, 0 0 40px 8px rgba(244,241,208,.25); }
-.cloud { position: absolute; height: 20px; background: rgba(255,255,255,.16); animation: drift linear infinite; }
-.cloud::before { content: ""; position: absolute; background: inherit; width: 50%; height: 20px; top: -20px; left: 20%; }
-.cloud.c1 { width: 160px; top: 80px; animation-duration: 70s; }
-.cloud.c2 { width: 110px; top: 150px; animation-duration: 95s; animation-delay: -40s; }
-.cloud.c3 { width: 220px; top: 40px; animation-duration: 120s; animation-delay: -80s; }
-@keyframes drift { from { transform: translateX(-260px); } to { transform: translateX(110vw); } }
 .hero h1 { position: relative; margin: 0; text-transform: uppercase; font: 34px/1.3 "Press Start 2P", monospace; color: var(--gold);
            text-shadow: 4px 4px 0 #3a2a00, 0 0 24px rgba(255,204,51,.35); letter-spacing: 2px; }
 .hero .tag { position: relative; margin-top: 12px; color: #dfe4ff; font-size: 22px; text-shadow: 2px 2px 0 #000; }
@@ -51,7 +43,7 @@ img, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 .live { position: fixed; right: 12px; bottom: 12px; z-index: 30; background: rgba(0,0,0,.75); border: 2px solid #000; padding: 2px 10px;
         font-size: 18px; display: flex; gap: 6px; align-items: center; }
 .live.flash { box-shadow: 0 0 0 2px var(--xp); }
-@media (prefers-reduced-motion: reduce) { .cloud, .stars, .splash, .dot.on { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .clouds, .stars, .splash, .dot.on { animation: none; } }
 
 /* ---------- real Minecraft buttons (nine-slice from the game) ---------- */
 nav.top { position: sticky; top: 0; z-index: 10; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
@@ -221,3 +213,180 @@ h2.first { margin-top: 0; }
 .lb.special { box-shadow: inset 0 0 0 2px rgba(128,255,32,.35); }
 footer a { color: inherit; }
 .badge.more { cursor: help; padding: 2px 10px; }
+
+/* ---------- the sky follows the game: day, dusk/dawn, night, rain and thunder ---------- */
+.hero { transition: background .8s; }
+.hero[data-sky="day"] { background: linear-gradient(180deg, #4a8fe0 0%, #7fb5f0 55%, #b9d8f7 100%); }
+.hero[data-sky="dusk"], .hero[data-sky="dawn"] { background: linear-gradient(180deg, #2b2f6b 0%, #b0507a 55%, #f39a54 100%); }
+.hero[data-sky="dusk"] .stars, .hero[data-sky="dawn"] .stars { opacity: .3; }
+.hero[data-sky="day"] .tag, .hero[data-sky="day"] .world { text-shadow: 2px 2px 0 #1d3a66; }
+.hero.rain { filter: saturate(.75); }
+.hero.thunder::after { content: ""; position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; animation: lightning 7s infinite; }
+@keyframes lightning { 0%, 91%, 94%, 100% { opacity: 0; } 92% { opacity: .55; } 93% { opacity: .1; } 93.5% { opacity: .4; } }
+.world { position: relative; display: flex; gap: 14px; justify-content: center; margin-top: 8px; font-size: 19px; color: #e8ecff; text-shadow: 2px 2px 0 #000; }
+.world span { display: inline-flex; gap: 6px; align-items: center; }
+@media (prefers-reduced-motion: reduce) { .hero.thunder::after { animation: none; } }
+
+/* ---------- play style title and dimension ---------- */
+.title-badge { display: inline-flex; gap: 5px; align-items: center; background: rgba(40,60,120,.55); border: 2px solid #000; color: #cfe0ff;
+               padding: 0 8px 0 4px; font-size: 17px; box-shadow: inset 0 0 0 2px rgba(130,170,255,.25); }
+.title-badge.big { font-size: 19px; padding: 2px 10px 2px 6px; }
+.dim { display: inline-flex; vertical-align: middle; }
+.btn.small { min-height: 32px; font-size: 18px; padding: 0 10px; }
+.cmp .txt { display: flex; gap: 6px; align-items: center; }
+
+/* ---------- advancement screen ---------- */
+.adv-head { display: flex; gap: 14px; align-items: center; margin-bottom: 10px; }
+.adv-total { font-size: 26px; text-shadow: 2px 2px 0 #000; white-space: nowrap; }
+.adv-total b { color: #7fe33a; font-weight: normal; }
+.adv-bar { flex: 1; margin: 0; display: block; }
+.adv-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.adv-tab { display: inline-flex; gap: 6px; align-items: center; background: #8b8b8b; color: #fff; font: 18px "VT323", monospace; cursor: pointer;
+           border: 2px solid #000; padding: 4px 10px; box-shadow: inset 2px 2px 0 #c6c6c6, inset -2px -2px 0 #555; text-shadow: 1px 1px 0 #3f3f3f; }
+.adv-tab img { width: 22px; height: 22px; }
+.adv-tab.on { background: #c6c6c6; color: #3f3f3f; text-shadow: none; box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #8b8b8b; }
+.adv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; }
+.adv-cell { aspect-ratio: 1; display: grid; place-items: center; background: center / 100% 100% no-repeat; image-rendering: pixelated; }
+.adv-cell img { width: 56%; height: 56%; }
+.adv-cell.not img { filter: grayscale(1) brightness(.55); }
+.adv-cell .q { color: #8a8a8a; font-size: 26px; }
+.adv-cell.got:hover, .adv-cell.not:hover { transform: scale(1.12); }
+
+/* ---------- hall of fame, week, buddies, pvp ---------- */
+.hall { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.hof { display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: center; padding: 12px; }
+.hof-ico { width: 52px; height: 52px; display: grid; place-items: center; background: url(/assets/gui/advancements/challenge_frame_obtained.png) center / 100% 100%; }
+.hof-ico img { width: 30px; height: 30px; }
+.hof-k { color: var(--gold); font-size: 19px; }
+.who { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.who:hover span { text-decoration: underline; }
+.potw { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
+.potw-k { color: var(--gold); font-size: 18px; }
+.potw-n { font: 20px/1.5 "Press Start 2P", monospace; text-shadow: 3px 3px 0 #000; cursor: pointer; }
+.buddies { display: grid; gap: 12px; }
+.buddy .pair { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.buddy .amp { color: var(--muted); }
+.buddy .t, .hof .t { color: var(--faint); font-size: 16px; }
+.pvp { display: grid; gap: 8px; }
+.fight { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.fight .vs { color: var(--red, #ff5555); display: inline-flex; gap: 4px; align-items: center; }
+
+/* ---------- versus ---------- */
+.vs-head { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; text-align: center; margin-bottom: 16px; }
+.vs-side .nm { font: 18px/1.6 "Press Start 2P", monospace; text-shadow: 3px 3px 0 #000; overflow-wrap: anywhere; }
+.vs-score { font: 30px "Press Start 2P", monospace; color: #ddd; text-shadow: 3px 3px 0 #000; }
+.vs-score .win, .vs-v.win { color: var(--gold); }
+.vs-score .muted { font: 18px "VT323", monospace; margin-top: 8px; }
+.vs-pick { margin-top: 8px; }
+.vs-pick select { appearance: none; background: transparent; border: 0; color: inherit; font: inherit; text-shadow: inherit; cursor: pointer; outline: none; }
+.vs-rows { display: grid; gap: 6px; }
+.vs-row { display: grid; grid-template-columns: 90px 1fr minmax(150px, 220px) 1fr 90px; gap: 8px; align-items: center; }
+.vs-v { text-align: right; font-variant-numeric: tabular-nums; color: #ddd; white-space: nowrap; }
+.vs-row .vs-v:last-child { text-align: left; }
+.vs-l { display: flex; gap: 6px; align-items: center; justify-content: center; color: var(--muted); font-size: 18px; text-align: center; }
+.vs-bar { height: 14px; background: #111; border: 2px solid #000; position: relative; }
+.vs-bar i { position: absolute; top: 0; bottom: 0; left: 0; background: linear-gradient(#a6ff5a, #5fbf18); }
+.vs-bar.left i { left: auto; right: 0; }
+.vs-bar i.top { background: linear-gradient(#ffe58a, #e0a800); }
+@media (max-width: 640px) {
+  .vs-row { grid-template-columns: 60px 1fr 60px; }
+  .vs-row .vs-l { grid-column: 1 / -1; grid-row: 1; }
+  .vs-row .vs-bar { display: none; }
+  .vs-head .v3d { width: 110px !important; height: 160px !important; }
+}
+
+/* ---------- real sky textures: sun, moon phase, clouds.png and rain.png ---------- */
+.hero[data-sky="day"] .stars { display: none; }
+.sun, .moon { position: absolute; top: 22px; right: 8%; width: 96px; height: 96px; image-rendering: pixelated;
+              mix-blend-mode: screen; pointer-events: none; transition: top 1s, opacity .6s; }
+.sun { display: none; }
+.hero[data-sky="day"] .sun { display: block; }
+.hero[data-sky="dusk"] .sun, .hero[data-sky="dawn"] .sun { display: block; top: 150px; filter: sepia(1) saturate(3) hue-rotate(-20deg); }
+.hero[data-sky="day"] .moon, .hero[data-sky="dusk"] .moon, .hero[data-sky="dawn"] .moon { display: none; }
+/* clouds.png: every white pixel is one cloud block; it tiles, so it drifts forever */
+.clouds { position: absolute; left: 0; right: 0; top: 0; height: 200px; pointer-events: none; opacity: .85;
+          background: url(/assets/environment/clouds.png) 0 -1180px / 3072px 3072px repeat-x; image-rendering: pixelated;
+          animation: clouds 420s linear infinite; }
+@keyframes clouds { to { background-position: -3072px -1180px; } }
+.hero[data-sky="night"] .clouds { opacity: .16; }
+.hero[data-sky="dusk"] .clouds, .hero[data-sky="dawn"] .clouds { opacity: .5; }
+.hero.rain .clouds { opacity: .9; filter: brightness(.55); }
+.hero.rain[data-sky="night"] .clouds { opacity: .35; }
+.rainfall { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; image-rendering: pixelated; }
+.hero.rain .sun, .hero.rain .moon, .hero.rain .stars { opacity: .2; }
+
+/* ---------- spacing: a rotated 3D head is wider than its box, give it room ---------- */
+.head3d { margin: calc(var(--s) * .12) calc(var(--s) * .32); }
+.lb .r { grid-template-columns: auto 1fr auto; gap: 10px; }
+.who { gap: 2px; }
+.who > span:last-child { margin-left: 2px; }
+
+/* player cards: one tidy status line */
+.pcard .meta { flex-wrap: nowrap; white-space: nowrap; margin-top: 4px; }
+.pcard .meta .dim { margin-left: 2px; }
+.pcard .title-badge { margin: 4px 0 2px; }
+
+/* hall of fame */
+.hall { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.hof { grid-template-columns: 56px 1fr; gap: 14px; padding: 12px 14px; min-height: 96px; }
+.hof-ico { width: 56px; height: 56px; }
+.hof-k { line-height: 1.1; margin-bottom: 4px; }
+.hof .who { margin-left: -6px; }
+
+/* week: player of the week */
+.potw { gap: 10px; padding: 4px 0 6px; }
+.potw .head3d { margin: 8px 22px 8px 18px; }
+.week .cmp .lbl, .buddy .pair { min-height: 30px; }
+
+/* buddies */
+.buddy { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.buddy:last-child { border-bottom: 0; }
+.buddy .xp { margin-top: 6px; }
+
+/* versus: the name is the player picker */
+.vs-side { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.vs-name { position: relative; display: inline-block; padding-right: 22px; cursor: pointer; }
+.vs-name select { field-sizing: content; appearance: none; -webkit-appearance: none; background: transparent; border: 0; outline: none; cursor: pointer; color: inherit;
+                  font: 18px/1.6 "Press Start 2P", monospace; text-shadow: 3px 3px 0 #000; text-align: center; max-width: 100%; }
+.vs-name select option { font: 18px "VT323", monospace; background: #1e1e1e; color: #e0e0e0; text-shadow: none; }
+.vs-name::after { content: ""; position: absolute; right: 2px; top: 50%; width: 10px; height: 6px; margin-top: -3px; pointer-events: none;
+                  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%23e0e0e0' d='M0 0h10v2H8v2H6v2H4V4H2V2H0z'/%3E%3C/svg%3E") 0 0 / 100% 100%; }
+.vs-name:hover::after { filter: sepia(1) saturate(3); }
+
+/* ---------- final polish ---------- */
+.grid.social { align-items: start; }
+.status { flex-wrap: nowrap; align-items: flex-start; }
+.status .dot { margin-top: 6px; }
+.status > span:nth-child(2) { flex: 1; }
+.sun, .moon { width: 128px; height: 128px; top: 14px; }
+.hero[data-sky="dusk"] .sun, .hero[data-sky="dawn"] .sun { top: 130px; }
+.feed .it .who { margin-right: 4px; }
+@media (max-width: 640px) {
+  .sun, .moon { width: 84px; height: 84px; right: 2%; }
+  .vs-row { grid-template-columns: auto 1fr 1fr auto; row-gap: 2px; }
+  .vs-row .vs-l { grid-column: 1 / -1; grid-row: 1; }
+  .vs-row .vs-bar { display: block; height: 10px; }
+  .vs-row > .vs-v:first-child { grid-column: 1; grid-row: 2; text-align: left; }
+  .vs-row > .vs-bar.left { grid-column: 2; grid-row: 2; }
+  .vs-row > .vs-bar:not(.left) { grid-column: 3; grid-row: 2; }
+  .vs-row > .vs-v:last-child { grid-column: 4; grid-row: 2; text-align: right; }
+  .vs-head { grid-template-columns: 1fr auto 1fr; gap: 4px; }
+  .vs-score { font-size: 20px; white-space: nowrap; }
+  .vs-name select { font-size: 13px; }
+}
+.vs-side { min-width: 0; }
+.vs-name { max-width: 100%; }
+@media (max-width: 640px) { .vs-name { padding-right: 16px; } .vs-name::after { right: 0; } }
+/* animated textures (e.g. nether portal) are a strip of frames: show only the first frame */
+img[data-fb] { aspect-ratio: 1; object-fit: cover; object-position: top; }
+.adv-cell { overflow: hidden; min-width: 0; }
+
+/* ---------- panels that work together: smart columns ---------- */
+.grid.flow { margin-top: 12px; align-items: start; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .grid.flow-2 { grid-template-columns: 1fr 1fr; } }
+.grid.flow > .panel { height: 100%; }
+/* buddies: one compact line per pair */
+.buddy { display: grid; grid-template-columns: minmax(0, 1.1fr) 1fr auto; gap: 12px; align-items: center; padding: 5px 0; }
+.buddy .xp { margin: 0; }
+.buddy .t { white-space: nowrap; min-width: 52px; text-align: right; color: var(--muted); font-size: 17px; }
+@media (max-width: 560px) { .buddy { grid-template-columns: 1fr auto; } .buddy .xp { grid-column: 1 / -1; grid-row: 2; } }

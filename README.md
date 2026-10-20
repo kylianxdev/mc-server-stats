@@ -17,19 +17,35 @@ Made for a fun survival server with your friends. No plugins, no mods: one comma
 
 ## Features
 
-- **Live**: the page updates itself every 5 seconds: who's online, joins, deaths, advancements, equipment.
-- **3D players** ([skinview3d](https://github.com/bs-community/skinview3d)) with their skin, active **cape**, and the
-  **armor they're wearing**, including dyed leather, **armor trims** with the real color palettes and elytras. Drag to rotate, pick an animation.
-- **Per player**: playtime per day and per hour of the day, sessions, equipment with enchantments, ~30 statistics with ranks,
-  a timeline of advancements and deaths, and #1 badges.
-- **Site level**: XP for advancements, diamonds, ancient debris, building, variety of mobs defeated, gear, … with weights and caps
-  so farming one thing doesn't decide everything. Uses Minecraft's own XP formula. Also ranks *XP per hour*.
+**The world**
+- **A sky that follows the game**, drawn with the game's own textures: `clouds.png` drifting by, the sun, the moon in the
+  right phase for the day, and when it rains in your world, `rain.png` falling in columns just like in Minecraft. Plus
+  the day number, the weather and whether the Ender Dragon has been defeated.
+
+**Players**
+- **3D players** ([skinview3d](https://github.com/bs-community/skinview3d)) with their skin, active **cape** and the
+  **armor they're wearing**: dyed leather, **armor trims** with the real color palettes, elytras. Drag to rotate, pick an animation.
+- **A play style title** for everyone: Miner, Lumberjack, Farmer, Builder, Explorer, Warrior, Trader, Fisher or Enchanter.
+- **The advancement screen** of every player, like in the game: five tabs, real frames and icons, done or not yet.
+- **Equipment** with enchantments and trims, **ores mined**, favourite block, most used and most crafted item,
+  ~30 statistics with ranks, playtime per day and per hour, which dimension they're in, and a timeline of advancements and deaths.
+- **Versus**: put two players side by side and see who wins, statistic by statistic.
+
+**The group**
+- **Site level**: XP for what you achieved (advancements, diamonds, building, mob variety, gear, …), not for time online.
+  Weighted and capped so farming one thing doesn't decide everything, using Minecraft's own XP formula. Also ranks *XP per hour*.
+- **Player of the week** and everyone's progress this week, from daily snapshots (`scripts/backfill_history.py` can fill
+  them from old backups). Optional weekly recap in the game chat.
+- **Hall of Fame**: who was the first on the server, with diamonds, in the Nether, in the End, to defeat the dragon, …
+- **Best buddies** (who plays together most), **player vs player** results and the **latest events** of everyone.
 - **Leaderboards** for every statistic, with spinning 3D heads.
-- **AFK meter**: a datapack that measures every second whether a player moves, looks around or does something.
+
+**And also**
+- **Live**: the page updates itself every 5 seconds.
+- **AFK meter**, **armor colored names** and **nicer chat** as optional datapacks.
 - **Log**: commands, operator history (who was ever op, admin commands with and without rights), whitelist/bans, warnings.
-- **Multilingual**: English, Nederlands, Español, Deutsch, Français. Item, mob, enchantment, trim and advancement names and even
-  death messages come from Minecraft's official translations.
-- **Real Minecraft look**: dirt background, buttons, XP bar, advancement frames and item icons from the game.
+- **Multilingual**: English, Nederlands, Español, Deutsch, Français. Item, mob, enchantment, trim and advancement names
+  and even death messages come from Minecraft's official translations.
 
 ### Privacy by design
 Private messages (`/msg`, `/tell`, …) are never shown, IP addresses are never read, coordinates in commands are hidden
@@ -56,6 +72,22 @@ Private messages (`/msg`, `/tell`, …) are never shown, IP addresses are never 
 **Equipment** with enchantments and armor trims, in the names of your language.
 
 <img src="docs/images/equipment.png" alt="Equipment with enchantments and trims" width="800">
+
+**When it rains in your world, it rains on the website,** with the game's own rain, clouds and moon.
+
+<img src="docs/images/rain.gif" alt="Rain at night, drawn with the game's rain texture" width="800">
+
+**Hall of Fame,** player of the week and best buddies.
+
+<img src="docs/images/hall.png" alt="Hall of Fame" width="800">
+
+<img src="docs/images/week.png" alt="Player of the week and best buddies" width="800">
+
+**The advancement screen** of every player, and **versus** to compare two players.
+
+<img src="docs/images/advancements.png" alt="Advancement screen with tabs" width="800">
+
+<img src="docs/images/versus.png" alt="Two players compared side by side" width="800">
 
 **Leaderboards** for everything, with spinning 3D heads.
 
@@ -147,8 +179,12 @@ languages, privacy options and the AFK threshold.
 ## Extras
 
 `extras/` contains optional scripts that work well with the website: a world **backup** that warns players in chat
-(`backup.sh`), a **chat announcement** with a clickable link to the website (`announce.sh`), and a helper that gives the
-BlueMap plugin a lower CPU priority (`renice-bluemap.sh`).
+(`backup.sh`), a **chat announcement** with a clickable link to the website (`announce.sh`), a **weekly recap** with the
+player of the week in the chat (`weekly-recap.sh`), and a helper that gives the BlueMap plugin a lower CPU priority
+(`renice-bluemap.sh`).
+
+To fill "player of the week" and the progress charts right away instead of waiting a week, read your old backups:
+`python3 scripts/backfill_history.py --config config.toml --backups /path/to/backups`
 
 ## Translations
 

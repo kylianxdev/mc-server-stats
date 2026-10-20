@@ -42,9 +42,12 @@ SPRITES = {  # sprite in the client -> path on the website
     "gui/sprites/advancements/task_frame_obtained.png": "gui/advancements/task_frame_obtained.png",
     "gui/sprites/advancements/goal_frame_obtained.png": "gui/advancements/goal_frame_obtained.png",
     "gui/sprites/advancements/challenge_frame_obtained.png": "gui/advancements/challenge_frame_obtained.png",
+    "gui/sprites/advancements/task_frame_unobtained.png": "gui/advancements/task_frame_unobtained.png",
+    "gui/sprites/advancements/goal_frame_unobtained.png": "gui/advancements/goal_frame_unobtained.png",
+    "gui/sprites/advancements/challenge_frame_unobtained.png": "gui/advancements/challenge_frame_unobtained.png",
 }
 FOLDERS = ("entity/equipment/humanoid/", "entity/equipment/humanoid_leggings/", "entity/equipment/wings/",
-           "trims/entity/humanoid/", "trims/entity/humanoid_leggings/", "palettes/", "entity/player/")
+           "trims/entity/humanoid/", "trims/entity/humanoid_leggings/", "palettes/", "entity/player/", "environment/")
 
 
 def get(url: str) -> bytes:
@@ -82,6 +85,27 @@ def wanted(rel: str) -> str | None:
     return None
 
 
+def read_advancements(z: zipfile.ZipFile) -> dict:
+    """All advancements (not recipes) with their tab, parent, icon, frame and title/description keys."""
+    out = {}
+    prefix = re.compile(r"^data/minecraft/advancements?/")
+    for name in z.namelist():
+        if not prefix.match(name) or not name.endswith(".json") or "/recipes/" in name:
+            continue
+        adv_id = prefix.sub("", name)[:-5]
+        d = json.loads(z.read(name))
+        display = d.get("display")
+        if not display:
+            continue
+        icon = display.get("icon", {})
+        text = lambda v: v.get("translate", "") if isinstance(v, dict) else str(v)
+        out[adv_id] = {"tab": adv_id.split("/")[0], "parent": str(d.get("parent", "")).removeprefix("minecraft:") or None,
+                       "icon": str(icon.get("id", icon.get("item", ""))).removeprefix("minecraft:"),
+                       "frame": display.get("frame", "task"), "title": text(display.get("title", "")),
+                       "desc": text(display.get("description", "")), "hidden": bool(display.get("hidden", False))}
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("-c", "--config", help="config.toml (for the Minecraft folder, languages and assets folder)")
@@ -117,7 +141,10 @@ def main():
                 target.write_bytes(z.read(name))
                 count += 1
         en_us = json.loads(z.read("assets/minecraft/lang/en_us.json"))
+        advancements = read_advancements(z)
     print(f"  {count} textures")
+    (out / "advancements.json").write_text(json.dumps(advancements, separators=(",", ":")))
+    print(f"  {len(advancements)} advancements")
 
     # translations: en_us is in the jar, the others come from the asset index
     lang_dir = out / "lang"

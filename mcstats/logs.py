@@ -158,6 +158,7 @@ class LogParser:
             "feedback": feedback[::-1],
             "moderation": moderation[::-1],
             "profiles": build_profiles(sessions, advancements, deaths),
+            "_sessions": sessions,  # internal, used for "who plays together"; not published
         }
         self._key, self._data = key, data
         return data

@@ -33,6 +33,7 @@ export function t(key, vars = {}) {
 const nice = id => String(id).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 const mcKey = key => mc[key] ?? mcEn[key];
 
+export const mcText = key => (key && (mc[key] ?? mcEn[key])) || "";
 export const entityName = id => mcKey(`entity.minecraft.${id}`) || nice(id);
 export const itemName = id => mcKey(`item.minecraft.${id}`) || mcKey(`block.minecraft.${id}`) || nice(id);
 export const enchantName = id => mcKey(`enchantment.minecraft.${id}`) || nice(id);

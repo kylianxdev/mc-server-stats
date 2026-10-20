@@ -23,12 +23,28 @@ def _km(st, *keys) -> float:
     return round(_custom(st, *keys) / 100000, 1)
 
 
-def _top(st, category):
+def _top(st, category, kind="entity"):
+    """The most common entry, e.g. the most killed mob; kind tells the website how to name it."""
     items = _cat(st, category)
     if not items:
         return None
     k = max(items, key=items.get)
-    return {"id": k, "n": items[k]}
+    return {"id": k, "n": items[k], "kind": kind}
+
+
+# ore -> the blocks that count for it (deepslate variants included)
+ORES = {
+    "coal": ("coal_ore", "deepslate_coal_ore"), "copper": ("copper_ore", "deepslate_copper_ore"),
+    "iron": ("iron_ore", "deepslate_iron_ore"), "gold": ("gold_ore", "deepslate_gold_ore", "nether_gold_ore"),
+    "redstone": ("redstone_ore", "deepslate_redstone_ore"), "lapis": ("lapis_ore", "deepslate_lapis_ore"),
+    "diamond": ("diamond_ore", "deepslate_diamond_ore"), "emerald": ("emerald_ore", "deepslate_emerald_ore"),
+    "quartz": ("nether_quartz_ore",), "ancient_debris": ("ancient_debris",),
+}
+
+
+def ores(stats: dict[str, dict]) -> dict[str, dict[str, int]]:
+    """Ores mined per player."""
+    return {p: {ore: sum(_cat(st, "mined").get(b, 0) for b in blocks) for ore, blocks in ORES.items()} for p, st in stats.items()}
 
 
 CROPS = {"wheat", "carrots", "potatoes", "beetroots", "nether_wart", "melon", "pumpkin", "sugar_cane", "cocoa"}
@@ -53,6 +69,9 @@ STATS = [
     ("jumps", lambda st: _custom(st, "jump")),
     ("mob_kills", lambda st: _custom(st, "mob_kills")),
     ("most_killed", lambda st: _top(st, "killed")),
+    ("favourite_block", lambda st: _top(st, "mined", "item")),
+    ("most_used", lambda st: _top(st, "used", "item")),
+    ("most_crafted", lambda st: _top(st, "crafted", "item")),
     ("deaths", lambda st: _custom(st, "deaths")),
     ("killed_by_most", lambda st: _top(st, "killed_by")),
     ("player_kills", lambda st: _custom(st, "player_kills")),

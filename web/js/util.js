@@ -22,6 +22,18 @@ export function fmtDate(stamp) {
 }
 export const weekday = d => new Date(`${d}T12:00:00Z`).toLocaleDateString(locale, { weekday: "short", timeZone: "UTC" });
 
+// the icon of an item or block; blocks with a 3D model fall back to their front/side/top texture
+const FALLBACKS = id => [`item/${id}`, `block/${id}`, `block/${id}_front`, `block/${id}_side`, `block/${id}_top`, "item/barrier"];
+export const itemImg = (id, cls = "") =>
+  `<img class="${cls}" src="/assets/item/${id}.png" data-fb="${FALLBACKS(id).slice(1).join(",")}" alt="">`;
+document.addEventListener("error", e => {
+  const img = e.target;
+  if (img.tagName !== "IMG" || !img.dataset.fb) return;
+  const [next, ...rest] = img.dataset.fb.split(",");
+  img.dataset.fb = rest.join(",");
+  if (next) img.src = `/assets/${next}.png`;
+}, true);
+
 // a texture from the game, e.g. tex("item/diamond")
 export const tex = (path, cls = "") => `<img class="ico ${cls}" src="/assets/${path}.png" alt="">`;
 
@@ -40,7 +52,7 @@ export const ICONS = {
   jumps: "item/rabbit_foot", mob_kills: "item/iron_sword", most_killed: "item/bone", deaths: "item/totem_of_undying",
   killed_by_most: "item/arrow", player_kills: "item/bow", damage_dealt: "gui/hud/heart/full", damage_taken: "item/golden_apple",
   animals_bred: "item/egg", fish_caught: "item/fishing_rod", villager_trades: "item/emerald", items_enchanted: "item/enchanted_book",
-  chests_opened: "block/barrel_side", times_slept: "block/red_wool", cake_slices: "item/cake", items_dropped: "item/barrier",
+  chests_opened: "block/barrel_side", favourite_block: "block/grass_block_side", most_used: "block/oak_planks", most_crafted: "block/crafting_table_front", times_slept: "block/red_wool", cake_slices: "item/cake", items_dropped: "item/barrier",
   advancements: "item/experience_bottle", hard_advancements: "item/nether_star", mob_variety: "item/iron_sword",
   gear: "item/diamond_chestplate", distance_km: "item/leather_boots",
 };

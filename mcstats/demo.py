@@ -13,8 +13,10 @@ import random
 from . import __version__
 from .config import Config
 from .logs import TIME_FMT
+from .hall import hall_of_fame
 from .progress import progress
-from .stats import fun_stats, playtime
+from .social import pvp
+from .stats import fun_stats, ores, playtime
 
 # name: (skin model, how active, how much of a fighter, how much of a builder, equipment)
 PLAYERS = {
@@ -47,6 +49,17 @@ ADVANCEMENTS = [("Stone Age", "task"), ("Getting an Upgrade", "task"), ("Acquire
                 ("Return to Sender", "challenge"), ("Serious Dedication", "challenge"), ("A Balanced Diet", "challenge")]
 DEATHS = ["was slain by Zombie", "was shot by Skeleton", "fell from a high place", "was blown up by Creeper",
           "tried to swim in lava", "was slain by Enderman", "drowned", "was killed by Witch using magic"]
+PVP = {"Steve": ["was slain by Kai"], "Kai": ["was shot by Alex", "was slain by Steve"], "Noor": ["was slain by Kai"]}
+DIMENSIONS = {"Alex": "the_nether", "Kai": "the_end"}
+# advancement ids per player, most active players got furthest
+ADV_IDS = ["story/mine_stone", "story/upgrade_tools", "story/smelt_iron", "story/obtain_armor", "story/lava_bucket", "story/iron_tools",
+           "story/deflect_arrow", "story/form_obsidian", "story/mine_diamond", "story/enter_the_nether", "story/shiny_gear",
+           "story/enchant_item", "story/cure_zombie_villager", "story/follow_ender_eye", "story/enter_the_end",
+           "nether/return_to_sender", "nether/find_fortress", "nether/obtain_blaze_rod", "nether/obtain_ancient_debris",
+           "nether/netherite_armor", "nether/brew_potion", "nether/summon_wither", "end/kill_dragon", "end/enter_end_gateway",
+           "end/elytra", "adventure/kill_a_mob", "adventure/trade", "adventure/sleep_in_bed", "adventure/shoot_arrow",
+           "adventure/totem_of_undying", "adventure/hero_of_the_village", "adventure/adventuring_time", "husbandry/plant_seed",
+           "husbandry/breed_an_animal", "husbandry/tame_an_animal", "husbandry/fishy_business", "husbandry/balanced_diet"]
 MOBS = ["zombie", "skeleton", "creeper", "spider", "enderman", "witch", "slime", "drowned", "phantom", "piglin",
         "blaze", "wither_skeleton", "pillager", "guardian", "magma_cube", "ghast", "husk", "stray", "cave_spider", "silverfish"]
 
@@ -85,6 +98,11 @@ def _stats(rng, active, fighter, builder) -> dict:
             "minecraft:eat_cake_slice": rng.randint(0, 12), "minecraft:drop": int(hours * 20),
         },
         "minecraft:mined": {"minecraft:stone": int(hours * 600 * builder), "minecraft:deepslate": int(hours * 300 * active),
+                            "minecraft:coal_ore": int(hours * 14), "minecraft:iron_ore": int(hours * 11 * builder),
+                            "minecraft:deepslate_iron_ore": int(hours * 5), "minecraft:copper_ore": int(hours * 6),
+                            "minecraft:gold_ore": int(hours * 3), "minecraft:redstone_ore": int(hours * 7 * rng.random()),
+                            "minecraft:lapis_ore": int(hours * 2), "minecraft:emerald_ore": rng.randint(0, 9),
+                            "minecraft:nether_quartz_ore": int(hours * 9 * fighter),
                             "minecraft:diamond_ore": int(60 * active * builder), "minecraft:deepslate_diamond_ore": int(110 * active),
                             "minecraft:ancient_debris": int(24 * active * rng.uniform(0.5, 1.2)), "minecraft:oak_log": int(hours * 70 * builder),
                             "minecraft:wheat": int(hours * 20 * builder)},
@@ -112,7 +130,7 @@ def _profile(rng, name, active, now):
     adv = [{"t": (now - dt.timedelta(hours=7 * i + rng.randint(0, 6))).strftime(TIME_FMT), "p": name, "a": a, "kind": k}
            for i, (a, k) in enumerate(rng.sample(ADVANCEMENTS, int(8 + 10 * active)))]
     deaths = [{"t": (now - dt.timedelta(hours=11 * i + 3)).strftime(TIME_FMT), "p": name, "m": m}
-              for i, m in enumerate(rng.sample(DEATHS, 4))]
+              for i, m in enumerate(rng.sample(DEATHS, 4) + PVP.get(name, []))]
     return {"sessions": max(sessions, 1), "longest": int(3600 * rng.uniform(2, 4.5)), "first": first,
             "last": now.strftime(TIME_FMT) if name in ONLINE else last, "per_day": per_day, "per_hour": per_hour,
             "online": name in ONLINE, "advancements": sorted(adv, key=lambda x: x["t"], reverse=True), "deaths": deaths}
@@ -125,14 +143,20 @@ def data(cfg: Config) -> dict:
     for name, (model, active, fighter, builder, gear) in PLAYERS.items():
         stats[name] = _stats(rng, active, fighter, builder)
         equipment[name] = {slot: _item(gear.get(slot)) for slot in ("head", "chest", "legs", "feet", "mainhand", "offhand")}
-        owned = {it["id"]: 1 for it in equipment[name].values() if it}
+        equipment[name]["dimension"] = DIMENSIONS.get(name, "overworld")
+        owned = {it["id"]: 1 for it in equipment[name].values() if isinstance(it, dict)}
         equipment[name]["owned"] = owned | {"totem_of_undying": 2, f"{'netherite' if active > 0.8 else 'diamond'}_sword": 1}
         profiles[name] = _profile(rng, name, active, now)
         chest = equipment[name]["chest"]
         colors[name] = (TRIM_COLOR[chest["trim"]["material"]] if chest and chest.get("trim")
                         else CHEST_COLOR.get(chest["id"].split("_")[0], "white") if chest and chest["id"].endswith("_chestplate") else "white")
     fun = fun_stats(stats)
-    advancements = {p: len(pr["advancements"]) + 6 for p, pr in profiles.items()}
+    adv_times = {}
+    for i, (name, (_, active, *_)) in enumerate(PLAYERS.items()):
+        # the order of ADV_IDS is the order of the game; more active players get there earlier
+        adv_times[name] = {a: (now - dt.timedelta(days=12) + dt.timedelta(hours=6 * j + 9 * i + rng.randint(0, 4))).strftime(TIME_FMT)
+                           for j, a in enumerate(ADV_IDS) if rng.random() < active * 0.95 - j * 0.012}
+    advancements = {p: len(t) for p, t in adv_times.items()}
     t = lambda h: (now - dt.timedelta(hours=h)).strftime(TIME_FMT)
     commands = [{"t": t(1), "p": "Steve", "c": "/gamerule players_sleeping_percentage 50", "admin": True, "tried": False},
                 {"t": t(3), "p": "Kai", "c": "/tp [x y z]", "admin": False, "tried": True},
@@ -156,9 +180,32 @@ def data(cfg: Config) -> dict:
                                            for p, (_, a, *_) in PLAYERS.items()}},
         "colors": colors,
         "armor": {p: {k: v for k, v in g.items() if k != "owned"} for p, g in equipment.items()},
-        "progress": progress(fun, stats, equipment, advancements, profiles),
+        "progress": (prog := progress(fun, stats, equipment, advancements, profiles)),
+        "world": {"day": 143, "time_of_day": 13200, "raining": False, "thundering": False, "dragon_killed": True, "version": "demo"},
+        "advancements": adv_times,
+        "hall": hall_of_fame(adv_times, profiles),
+        "buddies": [{"a": "Noor", "b": "Steve", "s": 31 * 3600}, {"a": "Alex", "b": "Kai", "s": 19 * 3600},
+                    {"a": "Alex", "b": "Steve", "s": 14 * 3600}, {"a": "Makena", "b": "Noor", "s": 8 * 3600},
+                    {"a": "Kai", "b": "Zuri", "s": 5 * 3600}],
+        "pvp": pvp(profiles),
+        "ores": ores(stats),
+        "history": _history(prog, playtime(stats), now),
         "skins": {p: {"model": m, "v": "demo"} for p, (m, *_) in PLAYERS.items()},
     }
+
+
+def _history(prog, times, now) -> dict:
+    """Three weeks of made-up daily snapshots that grow towards today's numbers."""
+    dates = [(now - dt.timedelta(days=20 - i)).strftime("%Y-%m-%d") for i in range(21)]
+    rng = random.Random(7)
+    series, week = {}, {}
+    for p in prog:
+        speed = rng.uniform(0.6, 1.4)
+        xs = [int(prog[p]["xp"] * (0.35 + 0.65 * (i / 20) ** speed)) for i in range(21)]
+        series[p] = {"xp": xs, "playtime": [int(times[p] * (0.4 + 0.6 * i / 20)) for i in range(21)]}
+        week[p] = {"xp": xs[-1] - xs[-8], "playtime": int(times[p] * 0.2), "blocks_mined": int(xs[-1] - xs[-8]) * 3,
+                   "mob_kills": int((xs[-1] - xs[-8]) / 9), "advancements": rng.randint(1, 5)}
+    return {"dates": dates, "series": series, "week": {"since": dates[-8], "players": week}}
 
 
 def skin_path(cfg: Config, name: str):

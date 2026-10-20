@@ -3,15 +3,47 @@ import { S } from "../state.js";
 import { advancementTitle, deathMessage, enchantName, entityName, itemName, t, trimMaterial, trimPattern } from "../i18n.js";
 import { dayBars, hourStrip, kpi, xpBar } from "../charts.js";
 import { v3d } from "../skins.js";
-import { bestXp, color, dur, esc, fmtDate, icon, nf, players, tex, xpPerHour } from "../util.js";
+import { advancementScreen } from "./advancements.js";
+import { dimensionIcon, flow, titleBadge } from "./server.js";
+import { buddiesPanel, pvpPanel } from "./social.js";
+import { bestXp, color, dur, esc, fmtDate, icon, itemImg, nf, players, tex, xpPerHour } from "../util.js";
 
 const MAX_BADGES = 6; // more #1 spots go into a "+N" badge with a tooltip
 const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
-const itemIcon = id => `<img src="/assets/item/${id}.png" alt="" onerror="this.onerror=()=>{this.onerror=null;this.src='/assets/item/barrier.png'};this.src='/assets/block/${id}.png'">`;
+const itemIcon = id => itemImg(id);
 // site XP parts are either statistics (stat.*) or their own categories (part.*)
 const PARTS = ["advancements", "hard_advancements", "mob_variety", "gear", "distance_km"];
 const partLabel = key => t(PARTS.includes(key) ? `part.${key}` : `stat.${key}`);
-const statValue = v => (v && typeof v === "object" ? `${entityName(v.id)} (${nf(v.n)}×)` : nf(v));
+const statValue = v => (v && typeof v === "object"
+  ? `${v.kind === "item" ? `${itemImg(v.id, "ico xs")} ${esc(itemName(v.id))}` : esc(entityName(v.id))} (${nf(v.n)}×)` : nf(v));
+
+// ore -> [icon, block name for the label]
+const ORES = { coal: "coal", copper: "raw_copper", iron: "raw_iron", gold: "raw_gold", redstone: "redstone", lapis: "lapis_lazuli",
+               diamond: "diamond", emerald: "emerald", quartz: "quartz", ancient_debris: "ancient_debris" };
+const oreBlock = ore => (ore === "quartz" ? "nether_quartz_ore" : ore === "ancient_debris" ? "ancient_debris" : `${ore}_ore`);
+function oresPanel(p) {
+  const all = S.data.ores || {}, mine = all[p];
+  if (!mine) return "";
+  return `<div class="panel"><h2>${tex("item/iron_pickaxe", "s")} ${t("section.ores")}</h2><div class="cmp">${Object.entries(ORES).map(([ore, ic]) => {
+    const v = mine[ore] || 0, max = Math.max(1, ...Object.values(all).map(o => o[ore] || 0));
+    return `<div class="row" data-tip="<b>${esc(itemName(oreBlock(ore)))}</b><br>${nf(v)}<br>${t("stats.best", { v: nf(max) })}">
+      <span class="lbl">${itemImg(ic, "ico s")} ${esc(itemName(oreBlock(ore)))}</span>
+      <span class="track"><i class="${v === max && v > 0 ? "top" : ""}" style="width:${((100 * v) / max).toFixed(1)}%"></i></span>
+      <span class="rk"><b>${nf(v)}</b></span></div>`;
+  }).join("")}</div></div>`;
+}
+
+// site XP per day (from the daily history)
+function xpHistory(p) {
+  const h = S.data.history;
+  const xs = h?.series?.[p]?.xp || [];
+  if (xs.filter(v => v != null).length < 2) return "";
+  const max = Math.max(1, ...xs.filter(v => v != null));
+  return `<div class="panel"><h2>${tex("item/experience_bottle", "s")} ${t("section.xp_history")}</h2>
+    <div class="bars">${xs.map((v, i) => `<div class="b" data-tip="<b>${fmtDate(h.dates[i])}</b><br>${v == null ? "–" : nf(v) + " site XP"}"><i style="height:${v ? Math.max(3, (100 * v) / max) : 0}%"></i></div>`).join("")}</div>
+    <div class="xlab">${h.dates.map((d, i) => `<span>${i % 2 === 0 ? +d.slice(8) : ""}</span>`).join("")}</div>
+    <div class="note">${t("xp_history.note")}</div></div>`;
+}
 
 function gearPanel(p) {
   const eq = S.data.armor?.[p];
@@ -55,8 +87,9 @@ export function viewPlayer(p) {
         <div class="note">${t("profile.drag")}</div></div>
       <div>
         <div class="nm" style="color:${color(p)}">${esc(p)}</div>
+        <div class="badges">${titleBadge(p, "big")}<button class="btn small" data-go="versus/${encodeURIComponent(p)}">${tex("item/iron_sword", "xs")} ${t("versus.compare")}</button></div>
         <div class="muted status"><span class="dot ${pr.online ? "on" : ""}"></span>
-          ${pr.online ? t(afk.afk_now ? "profile.online_afk" : "profile.online") : t("profile.last_online", { d: fmtDate(pr.last) })} · ${t("profile.first_seen", { d: fmtDate(pr.first) })}</div>
+          <span>${pr.online ? t(afk.afk_now ? "profile.online_afk" : "profile.online") : t("profile.last_online", { d: fmtDate(pr.last) })} · ${t("profile.first_seen", { d: fmtDate(pr.first) })}</span>${dimensionIcon(p)}</div>
         <div class="level">
           <span class="xp-lvl" data-tip="${t("level.tip")}"><span class="site-tag">${t("level.tag")}</span>${t("level.label", { n: prog.level })}</span>
           <span class="muted level-sub">${t("level.xp_rank", { xp: nf(prog.xp), rate: nf(xpPerHour(p)), rank: rateRank, n: ps.length })}</span>
@@ -75,6 +108,9 @@ export function viewPlayer(p) {
       </div>
     </div>
 
+    <h2>${tex("item/book", "s")} ${t("section.advancements")}</h2>
+    <div class="panel" id="advScreen">${advancementScreen(p)}</div>
+
     <h2>${tex("item/experience_bottle", "s")} ${t("section.level_from")}</h2>
     <div class="panel"><div class="cmp">${prog.parts.filter(x => x[1] > 0).map(([key, v]) => `
       <div class="row" data-tip="<b>${partLabel(key)}</b><br>${nf(v)} XP">
@@ -91,6 +127,9 @@ export function viewPlayer(p) {
       <div class="panel"><h2>${tex("item/compass_00", "s")} ${t("chart.when_player", { p: esc(p) })}</h2>${hourStrip(pr.per_hour, pr.per_day, pr.sessions, pr.longest)}</div>
     </div>
 
+    ${flow(oresPanel(p), xpHistory(p))}
+    ${flow(buddiesPanel(p), pvpPanel(p))}
+
     <h2>${tex("item/book", "s")} ${t("section.stats")}</h2>
     <div class="panel"><div class="cmp">${ranked.map(x => `
       <div class="row" data-tip="<b>${t(`stat.${x.key}`)}</b><br>${esc(p)}: ${nf(x.v)}<br>${t("stats.best", { v: nf(x.max) })}">
@@ -98,18 +137,16 @@ export function viewPlayer(p) {
         <span class="track"><i class="${x.rank === 1 && x.v > 0 ? "top" : ""}" style="width:${x.max ? ((100 * x.v) / x.max).toFixed(1) : 0}%"></i></span>
         <span class="rk"><b>${nf(x.v)}</b> · ${x.v > 0 ? t("stats.rank", { r: x.rank, n: x.n }) : "–"}</span>
       </div>`).join("")}
-      ${texts.map(r => `<div class="row"><span class="lbl">${icon(r.key, "s")} ${t(`stat.${r.key}`)}</span><span class="muted">${statValue(r.values[p])}</span><span></span></div>`).join("")}
+      ${texts.map(r => `<div class="row"><span class="lbl">${icon(r.key, "s")} ${t(`stat.${r.key}`)}</span><span class="muted txt">${statValue(r.values[p])}</span><span></span></div>`).join("")}
     </div><div class="note">${t("stats.note", { p: esc(p) })}</div></div>
 
-    <div class="grid two">
-      <div class="panel"><h2>${tex("item/experience_bottle", "s")} ${t("section.feed")}</h2>
+    ${flow(`<div class="panel"><h2>${tex("item/experience_bottle", "s")} ${t("section.feed")}</h2>
         <div class="feed">${feed.length ? feed.map(f => f.type === "adv"
           ? `<div class="it"><div class="frame ${f.kind}">${tex("item/book")}</div><div><span class="adv-${f.kind}">[${esc(advancementTitle(f.a))}]</span><div class="t">${fmtDate(f.t)}</div></div></div>`
           : `<div class="it"><div class="frame task">${tex("item/bone")}</div><div>${esc(deathMessage(p, f.m))}<div class="t">${fmtDate(f.t)}</div></div></div>`).join("")
-          : `<div class="empty">${t("feed.empty")}</div>`}</div></div>
-      ${d.site.show_log ? `<div class="panel"><h2>${tex("item/command_block_minecart", "s")} ${t("section.commands")}</h2>
+          : `<div class="empty">${t("feed.empty")}</div>`}</div></div>`,
+      d.site.show_log ? `<div class="panel"><h2>${tex("item/command_block_minecart", "s")} ${t("section.commands")}</h2>
         <div class="feed">${cmds.length ? cmds.map(c => `<div class="it"><div class="frame task">${tex(c.admin ? "item/command_block_minecart" : "item/paper")}</div><div><code>${esc(c.c)}</code>${
           c.admin ? ` <span class="chip warn">${t("chip.admin")}</span>` : c.tried ? ` <span class="chip">${t("chip.no_perm")}</span>` : ""}<div class="t">${fmtDate(c.t)}</div></div></div>`).join("")
-          : `<div class="empty">${t("cmds.empty")}</div>`}</div></div>` : ""}
-    </div>`;
+          : `<div class="empty">${t("cmds.empty")}</div>`}</div></div>` : "")}`;
 }

@@ -4,6 +4,18 @@ import { t } from "../i18n.js";
 import { dayBars, hourStrip, kpi, xpBar } from "../charts.js";
 import { head3d, v3d } from "../skins.js";
 import { bestXp, color, dur, esc, fmtDate, icon, nf, players, sumRow, tex, xpPerHour } from "../util.js";
+import { titleOf } from "../titles.js";
+import { activityPanel, buddiesPanel, hallOfFame, pvpPanel, weekPanel } from "./social.js";
+
+const DIMENSIONS = { overworld: "block/grass_block_side", the_nether: "block/netherrack", the_end: "block/end_stone" };
+export const dimensionIcon = p => {
+  const dim = S.data.armor?.[p]?.dimension;
+  return dim && DIMENSIONS[dim] ? `<span class="dim" data-tip="${t(`dim.${dim}`)}">${tex(DIMENSIONS[dim], "xs")}</span>` : "";
+};
+export const titleBadge = (p, cls = "") => {
+  const ti = titleOf(p);
+  return ti ? `<span class="title-badge ${cls}" data-tip="${t("title.tip")}">${tex(ti.icon, "xs")} ${t(`title.${ti.title}`)}</span>` : "";
+};
 
 export function viewServer() {
   const d = S.data, ps = players();
@@ -33,9 +45,18 @@ export function viewServer() {
       <div class="panel"><h2>${tex("item/compass_00", "s")} ${t("chart.when")}</h2>${hourStrip(perHour, perDay, sessions, longest)}</div>
     </div>
     <h2>${tex("item/name_tag", "s")} ${t("section.players")}</h2>${playerCards()}
+    ${flow(weekPanel(), buddiesPanel())}
+    ${hallOfFame()}
     <h2>${tex("item/gold_ingot", "s")} ${t("section.leaderboards")}</h2>
-    <div class="grid lbs">${leaderboards(ps)}</div>`;
+    <div class="grid lbs">${leaderboards(ps)}</div>
+    ${flow(activityPanel(), pvpPanel())}`;
 }
+
+// panels side by side that fill the width together: an empty one disappears, a single one takes the full row
+export const flow = (...panels) => {
+  const shown = panels.filter(Boolean);
+  return shown.length ? `<div class="grid flow flow-${shown.length}">${shown.join("")}</div>` : "";
+};
 
 export function playerCards() {
   const d = S.data;
@@ -45,7 +66,8 @@ export function playerCards() {
     return `<a class="panel pcard" href="#player/${encodeURIComponent(p)}" data-hoverwalk>
       ${v3d(p, 150, 210, "idle")}
       <div class="nm" style="color:${color(p)}">${esc(p)}</div>
-      <div class="meta"><span class="dot ${pr.online ? "on" : ""}"></span> ${pr.online ? t("card.online") : t("card.last_seen", { d: fmtDate(pr.last) })}</div>
+      <div class="meta">${titleBadge(p)}</div>
+      <div class="meta"><span class="dot ${pr.online ? "on" : ""}"></span> ${pr.online ? t("card.online") : t("card.last_seen", { d: fmtDate(pr.last?.slice(0, 10)) })} ${dimensionIcon(p)}</div>
       <div class="xp-lvl" data-tip="${tip}"><span class="site-tag">${t("level.tag")}</span>${g.level}</div>
       ${xpBar(g.xp / bestXp(), t("level.bar", { xp: nf(g.xp), pct: Math.round((100 * g.xp) / bestXp()) }))}
     </a>`;
