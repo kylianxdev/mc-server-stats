@@ -16,6 +16,7 @@ from .world import world_state
 from .config import Config
 from .logs import LogParser
 from .progress import progress
+from .region import World3D
 from .skins import Skins
 from .stats import fun_stats, ores, playtime
 
@@ -32,6 +33,7 @@ class App:
         self.logs = LogParser(cfg)
         self.skins = Skins(cfg)
         self.history = History(cfg)
+        self.world3d = None if demo_mode else World3D(cfg)
 
     def data(self) -> dict:
         cfg = self.cfg
@@ -104,6 +106,9 @@ def make_handler(app: App):
         def do_GET(self):
             path = urllib.parse.unquote(self.path.split("?", 1)[0])
             try:
+                if path == "/api/world3d":
+                    body = demo.world3d() if app.demo else app.world3d.json()
+                    return self.send(body, MIME[".json"], "max-age=300")
                 if path == "/api/data":
                     return self.send(json.dumps(app.data()).encode(), MIME[".json"])
                 if path in ("/", "/index.html"):

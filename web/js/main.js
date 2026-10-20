@@ -9,6 +9,7 @@ import { renderTable, viewLog } from "./views/log.js";
 import { viewVersus } from "./views/versus.js";
 import { advancementScreen, loadAdvancements } from "./views/advancements.js";
 import { updateSky } from "./sky.js";
+import { startWorld3d, updateWorld3d } from "./world3d.js";
 
 const POLL_MS = 5000;
 // remember the scroll position of every page, so "back" returns to the same spot
@@ -29,6 +30,7 @@ function route() {
 function renderSky() {
   const w = S.data.world || {};
   updateSky(w);
+  updateWorld3d();
   const weather = w.thundering ? "thunder" : w.raining ? "rain" : "clear";
   $("world").innerHTML = w.day ? `<span>${tex("item/clock_00", "xs")} ${t("world.day", { n: w.day.toLocaleString() })}</span>
     <span>${tex({ clear: "block/sunflower_front", rain: "item/water_bucket", thunder: "block/lightning_rod" }[weather], "xs")} ${t(`weather.${weather}`)}</span>
@@ -73,7 +75,8 @@ function render() {
     ? t("online.some", { n: on.length }) + " " + on.map(p => `<span style="color:${color(p)}">${esc(p)}</span>`).join(", ")
     : t("online.none")}`;
   // online players walk over the grass in the header
-  $("mobs").innerHTML = on.slice(0, 6).map(p => v3d(p, 70, 120, "walk", "data-mob=1")).join("");
+  // with the 3D world the online players walk around in it instead
+  $("mobs").innerHTML = document.body.classList.contains("w3d") ? "" : on.slice(0, 6).map(p => v3d(p, 70, 120, "walk", "data-mob=1")).join("");
   $("foot").textContent = `${t("footer.updated", { time: S.data.generated })} · mc-server-stats v${S.data.site.version}`;
   $("live").innerHTML = `<span class="dot on"></span> ${t("live")}`;
   restoreViewers(keep);
@@ -164,6 +167,9 @@ async function firstRender() {
     S.ready = true;
     route();
     Promise.all([names, loadAdvancements(), loadTextures()]).then(render);
+    // the 3D header comes last: the page is already usable while it loads
+    const later = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 500 }) : f => setTimeout(f, 300);
+    later(() => startWorld3d().then(() => S.ready && render()));
   })();
   return S.starting;
 }

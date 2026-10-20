@@ -7,7 +7,7 @@
 3D players in the armor they actually wear, leaderboards, playtime charts, AFK tracking and a level for what you achieved.
 Made for a fun survival server with your friends. No plugins, no mods: one command to install.
 
-<img src="docs/images/hero.gif" alt="Players online walk over the grass under the night sky" width="800">
+<img src="docs/images/world3d.png" alt="The header: the real world around spawn in 3D, like the Minecraft title screen" width="800">
 
 [Features](#features) · [Screenshots](#screenshots) · [Install](#installation) · [Try the demo](#try-the-demo) · [Configuration](#configuration)
 
@@ -18,6 +18,10 @@ Made for a fun survival server with your friends. No plugins, no mods: one comma
 ## Features
 
 **The world**
+- **Your real world in 3D** at the top of the page, like the Minecraft title screen: the blocks around the world spawn,
+  read straight from the region files, with the game's own textures. The camera slowly turns around, the players who
+  are online hang around at spawn, and the light follows the time of day and the weather. Built with
+  [three.js](https://threejs.org), loaded after the rest of the page; without WebGL the flat header stays.
 - **A sky that follows the game**, drawn with the game's own textures: `clouds.png` drifting by, the sun, the moon in the
   right phase for the day, and when it rains in your world, `rain.png` falling in columns just like in Minecraft. Plus
   the day number, the weather and whether the Ender Dragon has been defeated.
@@ -45,11 +49,13 @@ Made for a fun survival server with your friends. No plugins, no mods: one comma
 - **AFK meter**, **armor colored names** and **nicer chat** as optional datapacks.
 - **Log**: commands, operator history (who was ever op, admin commands with and without rights), whitelist/bans, warnings.
 - **Multilingual**: English, Nederlands, Español, Deutsch, Français. Item, mob, enchantment, trim and advancement names
-  and even death messages come from Minecraft's official translations.
+  and even death messages come from Minecraft's official translations. In Dutch the game names stay English
+  ("Sharpness", not "Scherpte"), because that's how Dutch players say them.
 
 ### Privacy by design
 Private messages (`/msg`, `/tell`, …) are never shown, IP addresses are never read, coordinates in commands are hidden
 (`/tp [x y z]`) and inventories are only used to calculate the level, never published. The log tab can be turned off.
+The 3D header shows the area around the world spawn only; players stand at random spots, never at their real position.
 The website loads nothing from other sites: fonts, textures and the 3D viewer are all served by your own server.
 
 ## Screenshots

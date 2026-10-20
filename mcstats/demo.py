@@ -15,6 +15,7 @@ from .config import Config
 from .logs import TIME_FMT
 from .hall import hall_of_fame
 from .progress import progress
+from .region import visible
 from .social import pvp
 from .stats import fun_stats, ores, playtime
 
@@ -211,3 +212,38 @@ def _history(prog, times, now) -> dict:
 def skin_path(cfg: Config, name: str):
     model = PLAYERS.get(name, ("wide",))[0]
     return cfg.assets_dir / "entity" / "player" / model / f"{name.lower()}.png"
+
+
+def world3d() -> bytes:
+    """A small made-up landscape for the 3D header: hills, a pond, trees and flowers."""
+    import json
+    import math
+    rng = random.Random(3)
+    POND = 0
+    columns: dict[tuple[int, int], dict[int, str]] = {}
+    for x in range(-24, 25):
+        for z in range(-24, 25):
+            h = round(2.6 * math.sin(x / 7) + 2 * math.cos(z / 8) + 1.3 * math.sin((x + z) / 5) + 3 * math.exp(-(x * x + z * z) / 250))  # spawn on a low hill
+            col = {y: "stone" for y in range(h - 6, h - 2)} | {y: "dirt" for y in range(h - 2, h)}
+            if (x - 14) ** 2 + (z + 10) ** 2 < 34:  # a pond, its water level flat
+                col = {y: v for y, v in col.items() if y < POND - 1} | {POND - 1: "sand"} | ({POND: "water"} if h >= POND else {})
+                if h < POND:
+                    col.update({h: "sand"} | {y: "water" for y in range(h + 1, POND + 1)})
+            else:
+                col[h] = "grass_block"
+                r = rng.random()
+                if r < 0.10:
+                    col[h + 1] = "short_grass"
+                elif r < 0.13:
+                    col[h + 1] = rng.choice(["poppy", "dandelion", "cornflower", "oxeye_daisy", "allium"])
+            columns[(x, z)] = col
+    for tx, tz in [(-9, 7), (11, 12), (-14, -10), (15, -14), (-3, 16), (19, 3)]:  # oak trees
+        h = max(columns[(tx, tz)])
+        for dy in range(1, 6):
+            columns[(tx, tz)][h + dy] = "oak_log"
+        for dx in range(-2, 3):
+            for dz in range(-2, 3):
+                for dy in range(4, 8):
+                    if abs(dx) + abs(dz) + max(0, dy - 6) * 2 <= 3 and (dx or dz or dy > 5) and (tx + dx, tz + dz) in columns:
+                        columns[(tx + dx, tz + dz)].setdefault(h + dy, "oak_leaves")
+    return json.dumps(visible(columns, {}, (0, 0, 0)), separators=(",", ":")).encode()

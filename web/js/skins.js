@@ -85,7 +85,7 @@ async function armorLayer(a) {
   }
   return c;
 }
-async function composeSkin(p) {
+export async function composeSkin(p) {
   const skin = await loadImg(skinUrl(p));
   const aw = isSlim(p) ? 3 : 4;
   const c = document.createElement("canvas"); c.width = 64; c.height = 64;

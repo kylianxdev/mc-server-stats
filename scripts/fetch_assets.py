@@ -27,6 +27,7 @@ from mcstats import config  # noqa: E402
 MANIFEST = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
 RESOURCES = "https://resources.download.minecraft.net/{}/{}"
 SKINVIEW3D = "https://cdn.jsdelivr.net/npm/skinview3d@3.4.2/bundles/skinview3d.bundle.js"
+THREE = "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js"
 LANG_CODES = {"en": "en_us", "nl": "nl_nl", "es": "es_es", "de": "de_de", "fr": "fr_fr", "pt": "pt_br",
               "it": "it_it", "pl": "pl_pl", "sv": "sv_se", "da": "da_dk", "tr": "tr_tr", "cs": "cs_cz"}
 LANG_KEYS = ("entity.minecraft.", "item.minecraft.", "block.minecraft.", "enchantment.minecraft.",
@@ -166,6 +167,8 @@ def main():
     (out / "js").mkdir(parents=True, exist_ok=True)
     (out / "js" / "skinview3d.bundle.js").write_bytes(get(SKINVIEW3D))
     print("  skinview3d (3D skin viewer, MIT license)")
+    (out / "js" / "three.module.min.js").write_bytes(get(THREE))
+    print("  three.js (3D engine for the world in the header, MIT license)")
     # list of item/block textures, so the website picks the right icon without trying (and missing) first
     names = sorted(str(p.relative_to(out))[:-4] for d in ("item", "block") for p in (out / d).glob("*.png"))
     (out / "textures.json").write_text(json.dumps(names, separators=(",", ":")))

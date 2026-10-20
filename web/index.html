@@ -22,6 +22,10 @@
 <link rel="modulepreload" href="/js/views/server.js">
 <link rel="modulepreload" href="/js/views/social.js">
 <link rel="modulepreload" href="/js/views/versus.js">
+<link rel="modulepreload" href="/js/world3d.js">
+<!-- the 3D header: fetched in the background with low priority, ready by the time it starts -->
+<link rel="prefetch" href="/assets/js/three.module.min.js">
+<link rel="prefetch" href="/api/world3d">
 <script>
   // ask for the data right away, while the scripts are still loading (main.js picks this up)
   window.firstData = fetch("/api/data", { cache: "no-store" }).then(r => r.text()).catch(() => null);

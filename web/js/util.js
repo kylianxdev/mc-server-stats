@@ -45,9 +45,10 @@ document.addEventListener("error", e => {
 export const tex = (path, cls = "") => `<img class="ico ${cls}" src="/assets/${path}.png" alt="">`;
 
 // Minecraft name colors (dark shades a bit lighter, readable on dark backgrounds)
-const NAME_COLORS = { white: "#ffffff", gray: "#aaaaaa", dark_gray: "#8a8a8a", gold: "#ffaa00", yellow: "#ffff55", red: "#ff5555",
-  dark_red: "#e23b3b", green: "#55ff55", aqua: "#55ffff", dark_aqua: "#2fc4c4", blue: "#7a7aff", dark_blue: "#5a5ad8",
-  dark_green: "#3cbf3c", light_purple: "#ff55ff", dark_purple: "#c24dc2" };
+// exactly the chat colors of the game
+const NAME_COLORS = { white: "#ffffff", gray: "#aaaaaa", dark_gray: "#555555", gold: "#ffaa00", yellow: "#ffff55", red: "#ff5555",
+  dark_red: "#aa0000", green: "#55ff55", aqua: "#55ffff", dark_aqua: "#00aaaa", blue: "#5555ff", dark_blue: "#0000aa",
+  dark_green: "#00aa00", light_purple: "#ff55ff", dark_purple: "#aa00aa", black: "#000000" };
 export const color = p => NAME_COLORS[S.data.colors?.[p]] || "#ffffff";
 
 // statistic / site XP part -> texture

@@ -1,10 +1,13 @@
 // Translations: website texts from /i18n/<lang>.json, and the names of mobs, items, enchantments,
 // trims, advancements and death messages from Minecraft's own language files (/assets/lang/<lang>.json).
-let ui = {}, uiEn = {}, mc = {}, mcEn = {};
+let ui = {}, uiEn = {}, mc = {}, mcEn = {}, gameNames = {};
 let reverse = null, deathRules = null;
 export let lang = "en", locale = "en";
 
 const LOCALES = { en: "en-GB", nl: "nl-NL", es: "es-ES", de: "de-DE", fr: "fr-FR", pt: "pt-BR", it: "it-IT", pl: "pl-PL" };
+// Players in these languages call everything in the game by its English name ("Sharpness", not
+// "Scherpte"), so names of items, mobs, enchantments and advancements stay English there.
+const ENGLISH_NAMES = ["nl"];
 const getJson = url => fetch(url).then(r => (r.ok ? r.json() : {})).catch(() => ({}));
 
 export function pickLanguage(site) {
@@ -23,7 +26,7 @@ export async function setLanguage(l) {
   lang = l; locale = LOCALES[l] || l;
   try { localStorage.setItem("lang", l); } catch (e) { /* private mode */ }
   const names = Promise.all([getJson(`/assets/lang/${l}.json`), getJson("/assets/lang/en.json")])
-    .then(([a, b]) => { if (lang === l) { mc = a; mcEn = b; reverse = deathRules = null; } });
+    .then(([a, b]) => { if (lang === l) { mc = a; mcEn = b; gameNames = ENGLISH_NAMES.includes(l) ? b : a; reverse = deathRules = null; } });
   [ui, uiEn] = await Promise.all([getJson(`/i18n/${l}.json`), getJson("/i18n/en.json")]);
   document.documentElement.lang = l;
   return { names };
@@ -36,9 +39,10 @@ export function t(key, vars = {}) {
 }
 
 const nice = id => String(id).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-const mcKey = key => mc[key] ?? mcEn[key];
+// descriptions are sentences: those stay in the chosen language
+const mcKey = key => (key.endsWith(".description") ? mc[key] : gameNames[key]) ?? mcEn[key];
 
-export const mcText = key => (key && (mc[key] ?? mcEn[key])) || "";
+export const mcText = key => (key && mcKey(key)) || "";
 export const entityName = id => mcKey(`entity.minecraft.${id}`) || nice(id);
 export const itemName = id => mcKey(`item.minecraft.${id}`) || mcKey(`block.minecraft.${id}`) || nice(id);
 export const enchantName = id => mcKey(`enchantment.minecraft.${id}`) || nice(id);
