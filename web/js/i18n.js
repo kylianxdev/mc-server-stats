@@ -27,7 +27,8 @@ export async function setLanguage(l) {
   try { localStorage.setItem("lang", l); } catch (e) { /* private mode */ }
   const names = Promise.all([getJson(`/assets/lang/${l}.json`), getJson("/assets/lang/en.json")])
     .then(([a, b]) => { if (lang === l) { mc = a; mcEn = b; gameNames = ENGLISH_NAMES.includes(l) ? b : a; reverse = deathRules = null; } });
-  [ui, uiEn] = await Promise.all([getJson(`/i18n/${l}.json`), getJson("/i18n/en.json")]);
+  const v = `?v=${window.siteVersion || ""}`;  // new texts after an update, never an old cached file
+  [ui, uiEn] = await Promise.all([getJson(`/i18n/${l}.json${v}`), getJson(`/i18n/en.json${v}`)]);
   document.documentElement.lang = l;
   return { names };
 }

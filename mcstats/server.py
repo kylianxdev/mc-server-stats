@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 import logging
 import re
@@ -83,6 +84,27 @@ def _static(root: Path, rel: str) -> Path | None:
     return f if f.is_file() and root in f.parents and f.suffix in MIME else None
 
 
+def site_version(web_dir: Path) -> str:
+    """Changes whenever a file of the website changes (it goes into every URL, so browsers never mix versions)."""
+    h = hashlib.sha1()
+    for f in sorted(p for d in ("css", "js", "i18n") for p in (web_dir / d).rglob("*") if p.is_file()):
+        st = f.stat()
+        h.update(f"{f.relative_to(web_dir)}:{st.st_mtime_ns}:{st.st_size};".encode())
+    return h.hexdigest()[:10]
+
+
+def index_html(web_dir: Path) -> bytes:
+    """index.html with ?v=<version> on every script and stylesheet, plus an import map for the modules they import."""
+    v = site_version(web_dir)
+    html = (web_dir / "index.html").read_text(encoding="utf-8")
+    html = re.sub(r'((?:href|src)=")(/(?:css|js)/[^"?]+)"', rf'\1\2?v={v}"', html)
+    modules = {f"/{p.relative_to(web_dir).as_posix()}": f"/{p.relative_to(web_dir).as_posix()}?v={v}"
+               for p in sorted((web_dir / "js").rglob("*.js"))}
+    head = (f'<script type="importmap">{json.dumps({"imports": modules}, separators=(",", ":"))}</script>\n'
+            f'<script>window.siteVersion = "{v}";</script>\n')
+    return html.replace("<link ", head + "<link ", 1).encode()
+
+
 def make_handler(app: App):
     cfg = app.cfg
 
@@ -112,7 +134,7 @@ def make_handler(app: App):
                 if path == "/api/data":
                     return self.send(json.dumps(app.data()).encode(), MIME[".json"])
                 if path in ("/", "/index.html"):
-                    return self.send((cfg.web_dir / "index.html").read_bytes(), MIME[".html"])
+                    return self.send(index_html(cfg.web_dir), MIME[".html"], "no-cache")
                 if m := re.fullmatch(r"/skin/(\w{1,16})\.png", path):
                     # may be cached long: the website asks for a new ?v= when the skin changes
                     if app.demo:
@@ -125,8 +147,9 @@ def make_handler(app: App):
                 if path.startswith("/fonts/") and (f := _static(cfg.web_dir, path.lstrip("/"))):
                     return self.send(f.read_bytes(), MIME[f.suffix], "public, max-age=31536000")
                 if path.startswith(("/css/", "/js/", "/i18n/")) and (f := _static(cfg.web_dir, path.lstrip("/"))):
-                    # kept 5 minutes, then refreshed in the background: fast for visitors, updates show up soon
-                    return self.send(f.read_bytes(), MIME[f.suffix], "max-age=300, stale-while-revalidate=86400")
+                    # with ?v= (as index.html asks for them) the file never changes, so it can be kept for good
+                    versioned = "v=" in self.path.partition("?")[2]
+                    return self.send(f.read_bytes(), MIME[f.suffix], "public, max-age=31536000, immutable" if versioned else "no-cache")
             except Exception:
                 log.exception("error while handling %s", path)
                 self.send_response(500)
