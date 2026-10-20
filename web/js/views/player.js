@@ -5,6 +5,7 @@ import { dayBars, hourStrip, kpi, xpBar } from "../charts.js";
 import { v3d } from "../skins.js";
 import { bestXp, color, dur, esc, fmtDate, icon, nf, players, tex, xpPerHour } from "../util.js";
 
+const MAX_BADGES = 6; // more #1 spots go into a "+N" badge with a tooltip
 const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 const itemIcon = id => `<img src="/assets/item/${id}.png" alt="" onerror="this.onerror=()=>{this.onerror=null;this.src='/assets/item/barrier.png'};this.src='/assets/block/${id}.png'">`;
 // site XP parts are either statistics (stat.*) or their own categories (part.*)
@@ -62,7 +63,8 @@ export function viewPlayer(p) {
           ${xpBar(prog.xp / bestXp(), t("level.bar", { xp: nf(prog.xp), pct: Math.round((100 * prog.xp) / bestXp()) }))}
         </div>
         <div class="badges">${levelRank === 1 ? badge(tex("item/experience_bottle", "xs"), t("badge.top_level")) : ""}${rateRank === 1 ? badge(tex("item/clock_00", "xs"), t("badge.top_rate")) : ""}${
-          firsts.length ? firsts.map(x => badge(icon(x.key, "xs"), t("badge.first", { stat: t(`stat.${x.key}`) }))).join("") : `<span class="muted">${t("badge.none")}</span>`}</div>
+          firsts.length ? firsts.slice(0, MAX_BADGES).map(x => badge(icon(x.key, "xs"), t("badge.first", { stat: t(`stat.${x.key}`) }))).join("") : `<span class="muted">${t("badge.none")}</span>`}${
+          firsts.length > MAX_BADGES ? `<span class="badge more" data-tip="${firsts.slice(MAX_BADGES).map(x => t("badge.first", { stat: t(`stat.${x.key}`) })).join("<br>")}">+${firsts.length - MAX_BADGES}</span>` : ""}</div>
         <div class="grid kpis" style="margin-top:14px">
           ${kpi("item/clock_00", t("kpi.playtime"), dur(pt))}
           ${kpi("item/compass_00", t("kpi.sessions"), nf(pr.sessions), t("kpi.longest", { d: dur(pr.longest) }))}

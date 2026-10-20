@@ -59,6 +59,7 @@ function render() {
   // online players walk over the grass in the header
   $("mobs").innerHTML = on.slice(0, 6).map(p => v3d(p, 70, 120, "walk", "data-mob=1")).join("");
   $("foot").textContent = `${t("footer.updated", { time: S.data.generated })} · mc-server-stats v${S.data.site.version}`;
+  $("live").innerHTML = `<span class="dot on"></span> ${t("live")}`;
   restoreViewers(keep);
 }
 

@@ -44,8 +44,7 @@ SPRITES = {  # sprite in the client -> path on the website
     "gui/sprites/advancements/challenge_frame_obtained.png": "gui/advancements/challenge_frame_obtained.png",
 }
 FOLDERS = ("entity/equipment/humanoid/", "entity/equipment/humanoid_leggings/", "entity/equipment/wings/",
-           "trims/entity/humanoid/", "trims/entity/humanoid_leggings/", "palettes/")
-FILES = ("entity/player/wide/steve.png", "entity/player/slim/alex.png")
+           "trims/entity/humanoid/", "trims/entity/humanoid_leggings/", "palettes/", "entity/player/")
 
 
 def get(url: str) -> bytes:
@@ -74,7 +73,7 @@ def wanted(rel: str) -> str | None:
         return None
     if rel in SPRITES:
         return SPRITES[rel]
-    if re.fullmatch(r"(block|item)/[^/]+\.png", rel) or rel in FILES or rel.startswith(FOLDERS):
+    if re.fullmatch(r"(block|item)/[^/]+\.png", rel) or rel.startswith(FOLDERS):
         return rel
     return None
 

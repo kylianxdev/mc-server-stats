@@ -11,12 +11,17 @@ def main():
     parser = argparse.ArgumentParser(prog="mcstats", description="Live statistics website for a Minecraft server")
     parser.add_argument("-c", "--config", default=os.environ.get("MCSTATS_CONFIG", "config.toml"),
                         help="path to config.toml (default: ./config.toml or $MCSTATS_CONFIG)")
+    parser.add_argument("--demo", action="store_true", help="show a made-up server (no Minecraft server needed)")
+    parser.add_argument("-p", "--port", type=int, help="port of the website (overrides the config)")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     path = args.config if os.path.exists(args.config) else None
-    if not path:
+    if not path and not args.demo:
         logging.warning("config file %s not found, using defaults", args.config)
-    serve(config.load(path))
+    cfg = config.load(path)
+    if args.port:
+        cfg.port = args.port
+    serve(cfg, demo_mode=args.demo)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import __version__, playerdata, scoreboard
+from . import __version__, demo, playerdata, scoreboard
 from .config import Config
 from .logs import LogParser
 from .progress import progress
@@ -22,13 +22,16 @@ LOG_KEYS = ("commands", "ops", "logins", "warnings", "feedback", "moderation", "
 
 
 class App:
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, demo_mode: bool = False):
         self.cfg = cfg
+        self.demo = demo.data(cfg) if demo_mode else None  # made once: the demo doesn't change
         self.logs = LogParser(cfg)
         self.skins = Skins(cfg)
 
     def data(self) -> dict:
         cfg = self.cfg
+        if self.demo:
+            return self.demo
         base = self.logs.parse()
         stats = playerdata.load_stats(cfg)
         fun = fun_stats(stats)
@@ -84,6 +87,8 @@ def make_handler(app: App):
                     return self.send((cfg.web_dir / "index.html").read_bytes(), MIME[".html"])
                 if m := re.fullmatch(r"/skin/(\w{1,16})\.png", path):
                     # may be cached long: the website asks for a new ?v= when the skin changes
+                    if app.demo:
+                        return self.send(demo.skin_path(cfg, m.group(1)).read_bytes(), MIME[".png"], "public, max-age=604800")
                     return self.send(app.skins.png(m.group(1)), MIME[".png"], "public, max-age=604800")
                 if (m := re.fullmatch(r"/cape/(\w{1,16})\.png", path)) and (cape := app.skins.cape(m.group(1))):
                     return self.send(cape, MIME[".png"], "public, max-age=604800")
@@ -105,11 +110,14 @@ def make_handler(app: App):
     return Handler
 
 
-def serve(cfg: Config):
+def serve(cfg: Config, demo_mode: bool = False):
     if not (cfg.assets_dir / "block" / "dirt.png").exists():
         log.warning("textures not found in %s, run scripts/fetch_assets.py first", cfg.assets_dir)
-    app = App(cfg)
-    app.skins.start()
+    app = App(cfg, demo_mode)
+    if demo_mode:
+        log.info("demo mode: showing a made-up server")
+    else:
+        app.skins.start()
     httpd = ThreadingHTTPServer((cfg.host, cfg.port), make_handler(app))
     log.info("mc-server-stats %s on http://%s:%d (Minecraft: %s)", __version__, cfg.host, cfg.port, cfg.minecraft_dir)
     httpd.serve_forever()

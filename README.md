@@ -1,11 +1,19 @@
+<div align="center">
+
 # ⛏ mc-server-stats
 
-A live statistics website for your Minecraft server, styled like Minecraft itself, with real game
-textures, 3D player skins wearing the armor they actually wear, leaderboards, AFK tracking and a
-"site level" that rewards what players achieve rather than how long they're online.
+**A live statistics website for your Minecraft server, styled like Minecraft itself.**
 
-No plugins and no mods: it reads the files your server already writes (logs, player statistics,
-advancements, player data and the scoreboard). Works with Vanilla and Paper servers.
+3D players in the armor they actually wear, leaderboards, playtime charts, AFK tracking and a level for what you achieved.
+Made for a fun survival server with your friends. No plugins, no mods: one command to install.
+
+<img src="docs/images/hero.gif" alt="Players online walk over the grass under the night sky" width="800">
+
+[Features](#features) · [Screenshots](#screenshots) · [Install](#installation) · [Try the demo](#try-the-demo) · [Configuration](#configuration)
+
+![License: MIT](https://img.shields.io/badge/license-MIT-green) ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue) ![Minecraft 1.21.5+](https://img.shields.io/badge/minecraft-1.21.5%2B-62B47A) ![No plugins](https://img.shields.io/badge/plugins-none-orange)
+
+</div>
 
 ## Features
 
@@ -26,6 +34,48 @@ advancements, player data and the scoreboard). Works with Vanilla and Paper serv
 ### Privacy by design
 Private messages (`/msg`, `/tell`, …) are never shown, IP addresses are never read, coordinates in commands are hidden
 (`/tp [x y z]`) and inventories are only used to calculate the level, never published. The log tab can be turned off.
+
+## Screenshots
+
+<div align="center">
+
+**Every player in 3D, wearing their real armor, trims and capes.** Drag to rotate, pick an animation.
+
+<img src="docs/images/player.gif" alt="A player in netherite armor with gold trims, rotating and switching animations" width="760">
+
+**The home page:** totals, playtime per day, when people play and everyone who plays.
+
+<img src="docs/images/overview.png" alt="Home page with totals, charts and player cards" width="800">
+
+**A site level for what you achieved,** not for how long you were online.
+
+<img src="docs/images/player.png" alt="Player page with site level and badges" width="800">
+
+<img src="docs/images/site-level.png" alt="Where the site level comes from" width="800">
+
+**Equipment** with enchantments and armor trims, in the names of your language.
+
+<img src="docs/images/equipment.png" alt="Equipment with enchantments and trims" width="800">
+
+**Leaderboards** for everything, with spinning 3D heads.
+
+<img src="docs/images/leaderboards.gif" alt="Leaderboards with spinning 3D heads" width="760">
+
+**In your language, and on your phone.**
+
+<img src="docs/images/player-es.png" alt="Player page in Spanish, with an elytra" width="560"> <img src="docs/images/mobile.png" alt="The website on a phone" width="220">
+
+</div>
+
+## Try the demo
+
+Want to see it first? The demo shows a made-up server, no Minecraft server needed:
+
+```bash
+git clone https://github.com/kylianxdev/mc-server-stats.git && cd mc-server-stats
+python3 scripts/fetch_assets.py --version 1.21.10
+python3 -m mcstats --demo     # open http://localhost:8200
+```
 
 ## Requirements
 
