@@ -50,6 +50,9 @@ export async function startWorld3d() {
   try {
     world = await fetch("/api/world3d").then(r => r.json());
     if (world.bluemap) return startBlueMap(world.bluemap);
+    // our own renderer comes last: the page is already usable while it loads
+    await new Promise(r => window.requestIdleCallback ? requestIdleCallback(r, { timeout: 500 }) : setTimeout(r, 300));
+    while (!S.data) await new Promise(r => setTimeout(r, 100));  // the players come from the live data
     THREE = await import("/assets/js/three.module.min.js");
     if (!world.h?.length) throw new Error("no world");
     renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: "low-power" });
@@ -107,7 +110,18 @@ function startBlueMap(bm) {
       app.ahead = phone ? 80 : 130;
       const lowres = Math.max(2500, bm.distance * 10), load = viewer.loadMapArea.bind(viewer);
       // BlueMap loads around the point the camera looks at, and resets the distances from its settings
-      viewer.loadMapArea = () => load(app.ahead_x ?? bm.x, app.ahead_z ?? bm.z, app.reach, lowres);
+      viewer.loadMapArea = () => load(app.ahead_x ?? bm.x, app.ahead_z ?? bm.z, app.first ? 96 : app.reach, lowres);
+      // first only the valley under the title (a second or so), then the rest up to the horizon
+      app.first = true;
+      const done = () => {
+        if (!app.first) return;
+        app.first = false;
+        app.ahead_x = undefined;  // load again with the full reach
+      };
+      const started = performance.now(), wait = setInterval(() => {
+        const tiles = viewer.map.hiresTileManager;
+        if ((tiles.tiles.size && !tiles.currentlyLoading) || performance.now() - started > 3000) { clearInterval(wait); done(); }
+      }, 100);
       // sharp enough behind the title, without drawing four pixels for every pixel on retina screens
       viewer.superSampling = Math.min(1, 1.5 / devicePixelRatio);
       // BlueMap draws every frame of the screen (60 to 144 times a second), also when the banner is
@@ -138,7 +152,7 @@ export function updateWorld3d() {
   if (bluemap) {
     const sky = document.querySelector(".hero").dataset.sky || "night";
     // a bit lighter than the game at night, so the valley stays visible behind the title
-    const sun = { day: 1, dawn: 0.75, dusk: 0.75, night: 0.5 }[sky] * (S.data.world?.raining ? 0.8 : 1);
+    const sun = { day: 1, dawn: 0.75, dusk: 0.75, night: 0.5 }[sky] * (S.data?.world?.raining ? 0.8 : 1);
     const u = bluemap.mapViewer.data?.uniforms;
     if (u?.sunlightStrength) {
       u.sunlightStrength.value = sun;
@@ -150,7 +164,7 @@ export function updateWorld3d() {
   if (!scene) return;
   const sky = document.querySelector(".hero").dataset.sky || "night";
   const [fog, bright] = SKY[sky] || SKY.night;
-  const rain = S.data.world?.raining ? 0.7 : 1;
+  const rain = S.data?.world?.raining ? 0.7 : 1;
   scene.fog.color.setHex(fog).multiplyScalar(rain);
   light = bright * rain;
   for (const m of solidMats) m.color.setScalar(m.userData.glow ? 1 : light);
@@ -498,7 +512,7 @@ function turn(dt) {
   const fx = Math.sin(cm.rotation), fz = -Math.cos(cm.rotation), k = c.distance * 0.3;
   cm.position.x = c.x + fx * k;
   cm.position.z = c.z + fz * k;
-  const lx = cm.position.x + fx * bluemap.ahead, lz = cm.position.z + fz * bluemap.ahead;
+  const ahead = bluemap.first ? 0 : bluemap.ahead, lx = cm.position.x + fx * ahead, lz = cm.position.z + fz * ahead;
   if (bluemap.ahead_x === undefined || Math.hypot(lx - bluemap.ahead_x, lz - bluemap.ahead_z) > 32) {  // a row of tiles every few seconds
     bluemap.ahead_x = lx; bluemap.ahead_z = lz;
     viewer.loadMapArea();

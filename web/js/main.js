@@ -167,9 +167,6 @@ async function firstRender() {
     S.ready = true;
     route();
     Promise.all([names, loadAdvancements(), loadTextures()]).then(render);
-    // the 3D header comes last: the page is already usable while it loads
-    const later = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 500 }) : f => setTimeout(f, 300);
-    later(() => startWorld3d().then(() => S.ready && render()));
   })();
   return S.starting;
 }
@@ -184,5 +181,7 @@ function fromCache() {
 }
 
 fromCache();
+// the 3D header loads right away, next to the page (BlueMap's map in a frame; our own world waits until the page is idle)
+startWorld3d().then(() => S.ready && render());
 load();
 setInterval(load, POLL_MS);

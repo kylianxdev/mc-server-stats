@@ -27,3 +27,13 @@ class VersionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NameColorTest(unittest.TestCase):
+    def test_armor_gives_a_color_until_the_datapack_has_seen_the_player(self):
+        from mcstats.scoreboard import name_colors
+        board = {"Teams": [{"Name": "mcs_dark_red", "TeamColor": "dark_red", "Players": ["Steve"]}]}
+        armor = {"Steve": {"chest": {"id": "iron_chestplate"}},
+                 "Alex": {"chest": {"id": "diamond_chestplate", "trim": {"material": "emerald"}}},
+                 "Noor": {"chest": {"id": "netherite_chestplate"}}, "Kai": {"chest": {"id": "elytra"}}}
+        self.assertEqual(name_colors(board, armor), {"Steve": "dark_red", "Alex": "green", "Noor": "dark_purple", "Kai": "white"})

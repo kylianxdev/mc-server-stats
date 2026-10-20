@@ -1,6 +1,7 @@
 """The HTTP server: the website, the textures, the skins and one JSON endpoint with all data."""
 from __future__ import annotations
 
+import email.utils
 import gzip
 import hashlib
 import json
@@ -61,8 +62,8 @@ class App:
             "playtime": times,
             "fun": fun,
             "afk": scoreboard.afk(cfg, board, online),
-            "colors": scoreboard.team_colors(board),
-            "armor": playerdata.public_equipment(equipment),
+            "colors": scoreboard.name_colors(board, armor := playerdata.public_equipment(equipment)),
+            "armor": armor,
             "progress": prog,
             "world": world_state(cfg),
             "advancements": adv_times,
@@ -114,6 +115,8 @@ def make_handler(app: App):
 
     class Handler(BaseHTTPRequestHandler):
         server_version = f"mc-server-stats/{__version__}"
+        protocol_version = "HTTP/1.1"  # keep the connection open: the 3D header asks for hundreds of map tiles
+        timeout = 60
 
         def send(self, body: bytes, ctype: str, cache: str = "no-store", status: int = 200):
             self.send_response(status)
@@ -159,11 +162,37 @@ def make_handler(app: App):
                 self.end_headers()
                 self.wfile.write(body)
 
+        def bluemap_tile(self, rest: str) -> bool:
+            """Send one of BlueMap's map tiles straight from its files (much faster than through BlueMap)."""
+            m = re.fullmatch(r"/maps/(\w+)/tiles/(\d)/(x-?\d+(?:/-?\d+)*/z-?\d+(?:/-?\d+)*)\.(prbm|png)", rest.split("?", 1)[0])
+            if not m:
+                return False
+            mapid, lod, tile, kind = m.groups()
+            f = cfg.bluemap_maps_dir / mapid / "tiles" / lod / f"{tile}.{kind}{'.gz' if kind == 'prbm' else ''}"
+            try:
+                st = f.stat()
+            except OSError:
+                return False  # BlueMap knows (also: a tile that doesn't exist yet)
+            modified = email.utils.formatdate(st.st_mtime, usegmt=True)
+            fresh = self.headers.get("If-Modified-Since") == modified
+            self.send_response(304 if fresh else 200)
+            self.send_header("Content-Type", "image/png" if kind == "png" else "application/octet-stream")
+            if kind == "prbm":
+                self.send_header("Content-Encoding", "gzip")  # stored compressed: sent as it is
+            self.send_header("Cache-Control", "public, max-age=86400, stale-if-error=604800")
+            self.send_header("Last-Modified", modified)
+            body = b"" if fresh else f.read_bytes()
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return True
+
         def do_GET(self):
             path = urllib.parse.unquote(self.path.split("?", 1)[0])
             try:
                 if path.startswith("/bluemap/") and cfg.bluemap_url and not app.demo:
-                    return self.proxy_bluemap(self.path[len("/bluemap"):])
+                    rest = self.path[len("/bluemap"):]
+                    return self.bluemap_tile(rest) or self.proxy_bluemap(rest)
                 if path == "/api/world3d":
                     body = demo.world3d() if app.demo else app.world3d.json()
                     return self.send(body, MIME[".json"], "max-age=300")
@@ -189,6 +218,7 @@ def make_handler(app: App):
             except Exception:
                 log.exception("error while handling %s", path)
                 self.send_response(500)
+                self.send_header("Content-Length", "0")
                 self.end_headers()
                 return
             self.send_response(404)

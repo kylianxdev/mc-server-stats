@@ -16,6 +16,7 @@ from .logs import TIME_FMT
 from .hall import hall_of_fame
 from .progress import progress
 from .region import is_surface, valley
+from .scoreboard import armor_color
 from .social import pvp
 from .stats import fun_stats, ores, playtime
 
@@ -39,10 +40,6 @@ PLAYERS = {
     "Zuri": ("wide", 0.3, 0.6, 0.5, {"head": ("turtle_helmet",), "chest": ("copper_chestplate",), "mainhand": ("stone_axe",)}),
 }
 ONLINE = ("Steve", "Noor")
-TRIM_COLOR = {"amethyst": "light_purple", "copper": "red", "diamond": "aqua", "emerald": "green", "gold": "yellow", "iron": "gray",
-              "lapis": "blue", "netherite": "dark_purple", "quartz": "white", "redstone": "dark_red", "resin": "gold"}
-CHEST_COLOR = {"leather": "gold", "copper": "red", "chainmail": "dark_gray", "iron": "gray", "golden": "yellow",
-               "diamond": "aqua", "netherite": "dark_purple"}
 ADVANCEMENTS = [("Stone Age", "task"), ("Getting an Upgrade", "task"), ("Acquire Hardware", "task"), ("Diamonds!", "task"),
                 ("We Need to Go Deeper", "task"), ("Hot Stuff", "task"), ("Enchanter", "task"), ("Monster Hunter", "task"),
                 ("Sweet Dreams", "task"), ("Hidden in the Depths", "task"), ("Cover Me in Debris", "goal"),
@@ -149,8 +146,7 @@ def data(cfg: Config) -> dict:
         equipment[name]["owned"] = owned | {"totem_of_undying": 2, f"{'netherite' if active > 0.8 else 'diamond'}_sword": 1}
         profiles[name] = _profile(rng, name, active, now)
         chest = equipment[name]["chest"]
-        colors[name] = (TRIM_COLOR[chest["trim"]["material"]] if chest and chest.get("trim")
-                        else CHEST_COLOR.get(chest["id"].split("_")[0], "white") if chest and chest["id"].endswith("_chestplate") else "white")
+        colors[name] = armor_color(chest)
     fun = fun_stats(stats)
     adv_times = {}
     for i, (name, (_, active, *_)) in enumerate(PLAYERS.items()):

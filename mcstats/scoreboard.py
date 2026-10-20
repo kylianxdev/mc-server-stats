@@ -34,6 +34,31 @@ def afk(cfg: Config, board: dict, online: set[str]) -> dict:
     return {"since": cfg.afk_since or None, "players": players}
 
 
+# the same rules as the armor-colors datapack: the trim color wins, otherwise the chestplate material
+TRIM_COLOR = {"amethyst": "light_purple", "copper": "red", "diamond": "aqua", "emerald": "green", "gold": "yellow", "iron": "gray",
+              "lapis": "blue", "netherite": "dark_purple", "quartz": "white", "redstone": "dark_red", "resin": "gold"}
+CHEST_COLOR = {"leather": "gold", "copper": "red", "chainmail": "dark_gray", "iron": "gray", "golden": "yellow",
+               "diamond": "aqua", "netherite": "dark_purple"}
+
+
+def armor_color(chest: dict | None) -> str:
+    """Name color for a chestplate (an item dict with "id" and maybe "trim")."""
+    if not chest or not chest.get("id", "").endswith("_chestplate"):
+        return "white"
+    if chest.get("trim"):
+        return TRIM_COLOR.get(chest["trim"].get("material", ""), "white")
+    return CHEST_COLOR.get(chest["id"].split("_")[0], "white")
+
+
+def name_colors(board: dict, armor: dict) -> dict[str, str]:
+    """Name color of every player: their team when the datapack has seen them, otherwise their saved armor.
+
+    The datapack only sorts players who are online, so players who haven't joined since it was added
+    have no team yet.
+    """
+    return {p: armor_color(eq.get("chest")) for p, eq in armor.items()} | team_colors(board)
+
+
 def team_colors(board: dict) -> dict[str, str]:
     """Name color per player, from the team they are in (e.g. the armor-colors datapack)."""
     return {p: t.get("TeamColor", "white") for t in board.get("Teams", []) for p in t.get("Players", [])}

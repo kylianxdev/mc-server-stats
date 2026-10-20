@@ -34,6 +34,7 @@ class Config:
     world3d_homes: dict[str, list[int]] = field(default_factory=dict)
     world3d_far: int = 320  # how far the land goes around it (coarser), in blocks
     bluemap_url: str = "http://localhost:8100"  # for live player positions, if BlueMap runs
+    bluemap_maps: Path | None = None  # BlueMap's map files (file storage), to send its tiles straight from disk
     # storage
     data_dir: Path = ROOT / "data"
     assets_dir: Path = ROOT / "assets"
@@ -42,6 +43,10 @@ class Config:
     @property
     def world_dir(self) -> Path:
         return self.minecraft_dir / self.world
+
+    @property
+    def bluemap_maps_dir(self) -> Path:
+        return self.bluemap_maps or self.minecraft_dir / "bluemap" / "web" / "maps"
 
     @property
     def logs_dir(self) -> Path:
@@ -82,6 +87,8 @@ def load(path: str | Path | None) -> Config:
     cfg.world3d_center = [int(v) for v in w3d.get("center", [])]
     cfg.world3d_far = int(w3d.get("far", cfg.world3d_far))
     cfg.bluemap_url = str(w3d.get("bluemap", cfg.bluemap_url))
+    if "bluemap_maps" in w3d:
+        cfg.bluemap_maps = _path(w3d["bluemap_maps"], base)
     cfg.world3d_homes = {str(p): [int(v) for v in pos] for p, pos in w3d.get("homes", {}).items()}
     if "data_dir" in storage:
         cfg.data_dir = _path(storage["data_dir"], base)

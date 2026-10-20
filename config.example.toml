@@ -47,3 +47,4 @@ assets_dir = "assets"
 # BlueMap's web server, if it runs: then its 3D map is shown in the header
 # bluemap = "http://localhost:8100"
 # far = 320   # without BlueMap: how far the land goes around it, in blocks
+# bluemap_maps = "/path/to/minecraft/bluemap/web/maps"   # BlueMap's map files, to send its tiles straight from disk
