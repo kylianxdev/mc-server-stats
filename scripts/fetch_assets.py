@@ -166,6 +166,9 @@ def main():
     (out / "js").mkdir(parents=True, exist_ok=True)
     (out / "js" / "skinview3d.bundle.js").write_bytes(get(SKINVIEW3D))
     print("  skinview3d (3D skin viewer, MIT license)")
+    # list of item/block textures, so the website picks the right icon without trying (and missing) first
+    names = sorted(str(p.relative_to(out))[:-4] for d in ("item", "block") for p in (out / d).glob("*.png"))
+    (out / "textures.json").write_text(json.dumps(names, separators=(",", ":")))
     (out / "VERSION").write_text(version + "\n")
     print(f"Done: {out}")
 

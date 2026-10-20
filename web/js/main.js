@@ -2,7 +2,7 @@
 import { S } from "./state.js";
 import { lang, pickLanguage, setLanguage, t } from "./i18n.js";
 import { keepViewers, restoreViewers, setAnimation, v3d } from "./skins.js";
-import { $, color, esc, onlineNow, tex } from "./util.js";
+import { $, color, esc, loadTextures, onlineNow, tex } from "./util.js";
 import { playerCards, viewServer } from "./views/server.js";
 import { viewPlayer } from "./views/player.js";
 import { renderTable, viewLog } from "./views/log.js";
@@ -79,14 +79,17 @@ function render() {
   restoreViewers(keep);
 }
 
+const CACHE_KEY = "mcstats-data";
 async function load() {
   try {
-    const txt = await (await fetch("/api/data", { cache: "no-store" })).text();
+    const early = window.firstData; window.firstData = null;
+    const txt = (early && await early) || await (await fetch("/api/data", { cache: "no-store" })).text();
+    try { localStorage.setItem(CACHE_KEY, txt); } catch (e) { /* full or private mode */ }
     $("live").innerHTML = `<span class="dot on"></span> ${t("live")}`;
     if (txt === S.raw) return;
-    const first = !S.data;
+    if (!S.ready && S.starting) await S.starting;  // the cached version is still being drawn
     S.raw = txt; S.data = JSON.parse(txt);
-    if (first) { await Promise.all([setLanguage(pickLanguage(S.data.site)), loadAdvancements()]); route(); return; }
+    if (!S.ready) { await firstRender(); return; }
     if (S.view === "log" && document.activeElement?.closest?.(".tools")) { renderTable(); return; } // don't disturb typing
     const y = scrollY; render(); scrollTo(0, y);
     $("live").classList.add("flash"); setTimeout(() => $("live").classList.remove("flash"), 600);
@@ -98,7 +101,13 @@ async function load() {
 /* ---------- events ---------- */
 const go = v => { location.hash = v === "server" ? "#" : "#" + v; };
 $("nav").addEventListener("click", e => { const v = e.target.closest("[data-v]")?.dataset.v; if (v) go(v); });
-$("lang").addEventListener("change", async e => { await setLanguage(e.target.value); $("splash").textContent = ""; render(); });
+$("lang").addEventListener("change", async e => {
+  const { names } = await setLanguage(e.target.value);
+  $("splash").textContent = ""; render();
+  names.then(render);
+});
+// the 3D library loads in the background; start the 3D players once it's there
+addEventListener("skinview3d-ready", () => render());
 $("app").addEventListener("change", e => {
   const pick = e.target.closest("[data-vs]");
   if (!pick) return;
@@ -147,5 +156,27 @@ document.addEventListener("mousemove", e => {
   tip.style.left = Math.max(4, x) + "px"; tip.style.top = (y < 4 ? e.clientY + 18 : y) + "px";
 });
 
+// draw as soon as the website texts are there; Minecraft names and advancements follow a moment later
+async function firstRender() {
+  if (S.starting) return S.starting;
+  S.starting = (async () => {
+    const { names } = await setLanguage(pickLanguage(S.data.site));
+    S.ready = true;
+    route();
+    Promise.all([names, loadAdvancements(), loadTextures()]).then(render);
+  })();
+  return S.starting;
+}
+
+// coming back: show the last known data immediately; the live data replaces it a moment later
+function fromCache() {
+  let txt = null;
+  try { txt = localStorage.getItem(CACHE_KEY); } catch (e) { /* private mode */ }
+  if (!txt || S.data) return;
+  try { S.data = JSON.parse(txt); } catch (e) { return; }
+  firstRender();
+}
+
+fromCache();
 load();
 setInterval(load, POLL_MS);

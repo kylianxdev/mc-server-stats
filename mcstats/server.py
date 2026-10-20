@@ -1,6 +1,7 @@
 """The HTTP server: the website, the textures, the skins and one JSON endpoint with all data."""
 from __future__ import annotations
 
+import gzip
 import json
 import logging
 import re
@@ -20,7 +21,7 @@ from .stats import fun_stats, ores, playtime
 
 log = logging.getLogger(__name__)
 MIME = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
-        ".json": "application/json; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml"}
+        ".json": "application/json; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".woff2": "font/woff2"}
 LOG_KEYS = ("commands", "ops", "logins", "warnings", "feedback", "moderation", "current_ops", "ever_ops", "whitelist")
 
 
@@ -90,6 +91,11 @@ def make_handler(app: App):
             self.send_response(200)
             self.send_header("Content-Type", ctype)
             self.send_header("Cache-Control", cache)
+            # text compresses ~5x: much faster on a slow connection
+            if len(body) > 1024 and not ctype.startswith("image/") and "gzip" in self.headers.get("Accept-Encoding", ""):
+                body = gzip.compress(body, 6)
+                self.send_header("Content-Encoding", "gzip")
+                self.send_header("Vary", "Accept-Encoding")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
@@ -111,14 +117,19 @@ def make_handler(app: App):
                     return self.send(cape, MIME[".png"], "public, max-age=604800")
                 if path.startswith("/assets/") and (f := _static(cfg.assets_dir, path[len("/assets/"):])):
                     return self.send(f.read_bytes(), MIME[f.suffix], "public, max-age=604800")
+                if path.startswith("/fonts/") and (f := _static(cfg.web_dir, path.lstrip("/"))):
+                    return self.send(f.read_bytes(), MIME[f.suffix], "public, max-age=31536000")
                 if path.startswith(("/css/", "/js/", "/i18n/")) and (f := _static(cfg.web_dir, path.lstrip("/"))):
-                    return self.send(f.read_bytes(), MIME[f.suffix], "no-cache")
+                    # kept 5 minutes, then refreshed in the background: fast for visitors, updates show up soon
+                    return self.send(f.read_bytes(), MIME[f.suffix], "max-age=300, stale-while-revalidate=86400")
             except Exception:
                 log.exception("error while handling %s", path)
                 self.send_response(500)
                 self.end_headers()
                 return
             self.send_response(404)
+            self.send_header("Cache-Control", "max-age=3600")
+            self.send_header("Content-Length", "0")
             self.end_headers()
 
         def log_message(self, fmt, *args):

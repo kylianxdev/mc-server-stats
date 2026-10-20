@@ -171,7 +171,6 @@
   "dim.overworld": "in de Overworld",
   "dim.the_nether": "in de Nether",
   "dim.the_end": "in het End",
-  "title.tip": "Speelstijl: wat deze speler het meest doet vergeleken met de rest",
   "title.miner": "Mijnwerker",
   "title.lumberjack": "Houthakker",
   "title.farmer": "Boer",
@@ -229,5 +228,9 @@
   "versus.pick": "Kies een speler",
   "activity.title": "Laatste gebeurtenissen",
   "world.dragon_dead": "Draak verslagen",
-  "world.dragon_alive": "Draak leeft"
+  "world.dragon_alive": "Draak leeft",
+  "title.allrounder": "Allrounder",
+  "title.why": "{stat}: {x}× het gemiddelde van de rest",
+  "title.why_only": "{stat}: de enige die dit doet",
+  "title.why_all": "Doet van alles wat, niets springt eruit"
 }

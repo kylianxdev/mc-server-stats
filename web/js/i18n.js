@@ -15,13 +15,18 @@ export function pickLanguage(site) {
   return [saved, browser, site.default_language, "en"].find(l => l && available.includes(l)) || available[0];
 }
 
+/**
+ * Switch language. Resolves as soon as the website texts are there (small, fast); the Minecraft
+ * names (bigger) arrive later through the returned `names` promise, so the page can draw right away.
+ */
 export async function setLanguage(l) {
   lang = l; locale = LOCALES[l] || l;
   try { localStorage.setItem("lang", l); } catch (e) { /* private mode */ }
-  [ui, uiEn, mc, mcEn] = await Promise.all([getJson(`/i18n/${l}.json`), getJson("/i18n/en.json"),
-    getJson(`/assets/lang/${l}.json`), getJson("/assets/lang/en.json")]);
-  reverse = deathRules = null;
+  const names = Promise.all([getJson(`/assets/lang/${l}.json`), getJson("/assets/lang/en.json")])
+    .then(([a, b]) => { if (lang === l) { mc = a; mcEn = b; reverse = deathRules = null; } });
+  [ui, uiEn] = await Promise.all([getJson(`/i18n/${l}.json`), getJson("/i18n/en.json")]);
   document.documentElement.lang = l;
+  return { names };
 }
 
 /** Website text with {placeholders}; falls back to English, then to the key. */

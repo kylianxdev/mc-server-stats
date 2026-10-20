@@ -14,7 +14,9 @@ export const dimensionIcon = p => {
 };
 export const titleBadge = (p, cls = "") => {
   const ti = titleOf(p);
-  return ti ? `<span class="title-badge ${cls}" data-tip="${t("title.tip")}">${tex(ti.icon, "xs")} ${t(`title.${ti.title}`)}</span>` : "";
+  const why = ti.key ? (ti.ratio ? t("title.why", { stat: t(`stat.${ti.key}`), x: nf(Math.round(ti.ratio * 10) / 10) })
+                                 : t("title.why_only", { stat: t(`stat.${ti.key}`) })) : t("title.why_all");
+  return `<span class="title-badge ${cls}" data-tip="<b>${t(`title.${ti.title}`)}</b><br>${why}">${tex(ti.icon, "xs")} ${t(`title.${ti.title}`)}</span>`;
 };
 
 export function viewServer() {

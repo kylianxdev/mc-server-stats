@@ -171,7 +171,6 @@
   "dim.overworld": "en el Mundo Normal",
   "dim.the_nether": "en el Nether",
   "dim.the_end": "en el End",
-  "title.tip": "Estilo de juego: lo que más hace este jugador en comparación con los demás",
   "title.miner": "Minero",
   "title.lumberjack": "Leñador",
   "title.farmer": "Granjero",
@@ -229,5 +228,9 @@
   "versus.pick": "Elige un jugador",
   "activity.title": "Últimos sucesos",
   "world.dragon_dead": "Dragón derrotado",
-  "world.dragon_alive": "Dragón vivo"
+  "world.dragon_alive": "Dragón vivo",
+  "title.allrounder": "Todoterreno",
+  "title.why": "{stat}: {x}× la media de los demás",
+  "title.why_only": "{stat}: el único que lo hace",
+  "title.why_all": "Hace un poco de todo, nada destaca"
 }

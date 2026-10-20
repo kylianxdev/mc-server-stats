@@ -22,10 +22,17 @@ export function fmtDate(stamp) {
 }
 export const weekday = d => new Date(`${d}T12:00:00Z`).toLocaleDateString(locale, { weekday: "short", timeZone: "UTC" });
 
-// the icon of an item or block; blocks with a 3D model fall back to their front/side/top texture
+// the icon of an item or block; blocks with a 3D model fall back to their front/side/top texture.
+// With the texture list (assets/textures.json) the right file is picked straight away.
 const FALLBACKS = id => [`item/${id}`, `block/${id}`, `block/${id}_front`, `block/${id}_side`, `block/${id}_top`, "item/barrier"];
-export const itemImg = (id, cls = "") =>
-  `<img class="${cls}" src="/assets/item/${id}.png" data-fb="${FALLBACKS(id).slice(1).join(",")}" alt="">`;
+let textures = null;
+export const loadTextures = () => fetch("/assets/textures.json").then(r => (r.ok ? r.json() : null))
+  .then(list => { textures = list && new Set(list); }).catch(() => {});
+export const itemImg = (id, cls = "") => {
+  const options = FALLBACKS(id);
+  const first = textures ? options.find(o => textures.has(o)) || "item/barrier" : options[0];
+  return `<img class="${cls}" src="/assets/${first}.png" ${textures ? "" : `data-fb="${options.slice(1).join(",")}"`} alt="">`;
+};
 document.addEventListener("error", e => {
   const img = e.target;
   if (img.tagName !== "IMG" || !img.dataset.fb) return;

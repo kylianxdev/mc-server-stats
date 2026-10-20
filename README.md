@@ -50,6 +50,7 @@ Made for a fun survival server with your friends. No plugins, no mods: one comma
 ### Privacy by design
 Private messages (`/msg`, `/tell`, …) are never shown, IP addresses are never read, coordinates in commands are hidden
 (`/tp [x y z]`) and inventories are only used to calculate the level, never published. The log tab can be turned off.
+The website loads nothing from other sites: fonts, textures and the 3D viewer are all served by your own server.
 
 ## Screenshots
 

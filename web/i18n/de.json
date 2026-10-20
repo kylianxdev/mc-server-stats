@@ -171,7 +171,6 @@
   "dim.overworld": "in der Oberwelt",
   "dim.the_nether": "im Nether",
   "dim.the_end": "im End",
-  "title.tip": "Spielstil: was dieser Spieler im Vergleich zu den anderen am meisten macht",
   "title.miner": "Bergarbeiter",
   "title.lumberjack": "Holzfäller",
   "title.farmer": "Bauer",
@@ -229,5 +228,9 @@
   "versus.pick": "Spieler wählen",
   "activity.title": "Neueste Ereignisse",
   "world.dragon_dead": "Drache besiegt",
-  "world.dragon_alive": "Drache lebt"
+  "world.dragon_alive": "Drache lebt",
+  "title.allrounder": "Allrounder",
+  "title.why": "{stat}: {x}× der Durchschnitt der anderen",
+  "title.why_only": "{stat}: als Einziger",
+  "title.why_all": "Macht von allem etwas, nichts sticht heraus"
 }
