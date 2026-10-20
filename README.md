@@ -35,8 +35,23 @@ Private messages (`/msg`, `/tell`, …) are never shown, IP addresses are never 
 
 ## Installation
 
+On the machine that runs your Minecraft server:
+
 ```bash
-git clone https://github.com/<you>/mc-server-stats.git
+curl -fsSL https://raw.githubusercontent.com/OWNER/mc-server-stats/main/install.sh | bash
+```
+
+The installer finds your server, writes `config.toml`, downloads the textures, installs the datapacks, offers live
+equipment updates on Paper and sets up a service that starts automatically. It asks before changing anything;
+add `--yes` to accept all defaults. Afterwards open `http://your-server:8200`.
+
+Update later with `~/mc-server-stats/install.sh --update`. All options: `install.sh --help`.
+
+<details>
+<summary>Manual installation</summary>
+
+```bash
+git clone https://github.com/OWNER/mc-server-stats.git
 cd mc-server-stats
 cp config.example.toml config.toml        # set minecraft.dir to your server folder
 python3 scripts/fetch_assets.py --config config.toml
@@ -45,7 +60,8 @@ python3 -m mcstats --config config.toml   # http://your-server:8200
 
 `fetch_assets.py` downloads the official Minecraft client for your server's version (checksum verified) and extracts the
 textures and translations the website needs. Minecraft's assets belong to Mojang, so they're not part of this repository.
-Run it again after updating Minecraft.
+Run it again after updating Minecraft (`install.sh --update` does this for you).
+</details>
 
 ### Datapacks (recommended)
 

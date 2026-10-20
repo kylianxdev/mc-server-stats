@@ -81,8 +81,8 @@ else
 fi
 cd "$INSTALL_DIR"
 
-restart_service() {
-  if systemctl list-unit-files mc-server-stats.service >/dev/null 2>&1 && systemctl is-enabled --quiet mc-server-stats 2>/dev/null; then
+restart_service() {  # only the service that belongs to this installation
+  if systemctl cat mc-server-stats 2>/dev/null | grep -qx "WorkingDirectory=$INSTALL_DIR"; then
     sudo systemctl restart mc-server-stats && say "Restarted the mc-server-stats service"
   fi
 }
