@@ -1,0 +1,17 @@
+# systemd service — copy to /etc/systemd/system/, adjust User and the paths, then:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now mc-server-stats
+[Unit]
+Description=mc-server-stats (Minecraft statistics website)
+After=network-online.target
+
+[Service]
+User=minecraft
+WorkingDirectory=/opt/mc-server-stats
+ExecStart=/usr/bin/python3 -m mcstats --config /opt/mc-server-stats/config.toml
+Restart=on-failure
+# the website only needs to read the server folder
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

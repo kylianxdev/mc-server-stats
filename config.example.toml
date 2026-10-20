@@ -1,0 +1,40 @@
+# mc-server-stats configuration — copy to config.toml and adjust.
+# Relative paths are relative to this file.
+
+[minecraft]
+# The folder that contains server.properties, logs/ and your world
+dir = "/srv/minecraft"
+world = "world"
+
+[web]
+host = "0.0.0.0"
+port = 8200
+
+[site]
+title = "Server Stats"
+tagline = "a Minecraft server"
+# Language shown to visitors whose browser language isn't available
+default_language = "en"
+# Languages visitors can pick (files in web/i18n/)
+languages = ["en", "nl", "es", "de", "fr"]
+
+[privacy]
+# Hide coordinates in commands and messages, e.g. "/tp 100 64 -20" -> "/tp [x y z]"
+hide_coordinates = true
+# Show the log tab (commands, operator history, whitelist, warnings).
+# Private messages (/msg, /tell, ...) and IP addresses are never shown.
+show_log = true
+
+[features]
+# Seconds without any activity before a player counts as AFK (afk-meter datapack)
+afk_threshold_seconds = 300
+# Optional: when you installed the afk-meter datapack, shown on the website
+afk_since = ""
+# How often to check for new skins
+skin_check_interval_seconds = 180
+# Extra commands (e.g. from plugins) that should be marked as admin commands in the log
+extra_admin_commands = ["chunky", "spark", "bluemap"]
+
+[storage]
+data_dir = "data"
+assets_dir = "assets"

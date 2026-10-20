@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server Stats</title>
+<link rel="icon" href="/assets/block/grass_block_side.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<section class="hero">
+  <div class="stars"></div><div class="moon"></div>
+  <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+  <h1 id="title">Server Stats</h1>
+  <div class="tag" id="tagline"></div>
+  <div class="splash" id="splash"></div><br>
+  <div class="online-pill" id="onlinePill"><span class="dot"></span> …</div>
+  <div class="mobs" id="mobs"></div>
+</section>
+<div class="ground"></div><div class="ground2"></div>
+<nav class="top" id="nav">
+  <button class="btn" data-v="server" id="navServer">Server</button>
+  <button class="btn" data-v="players" id="navPlayers">Players</button>
+  <button class="btn" data-v="log" id="navLog">Log</button>
+  <select id="lang" aria-label="Language"></select>
+</nav>
+<main id="app"></main>
+<footer id="foot"></footer>
+<div class="live" id="live"><span class="dot on"></span> LIVE</div>
+<div class="tip" id="tip"></div>
+<script src="/assets/js/skinview3d.bundle.js"></script>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

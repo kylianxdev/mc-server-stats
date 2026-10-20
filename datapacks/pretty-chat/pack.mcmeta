@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "Nicer chat: name \u00bb message (needs a server restart)",
+    "min_format": 121,
+    "max_format": 121
+  }
+}

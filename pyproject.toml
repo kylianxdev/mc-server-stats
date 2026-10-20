@@ -1,0 +1,14 @@
+[project]
+name = "mc-server-stats"
+version = "1.0.0"
+description = "A live, Minecraft-styled statistics website for your Minecraft server"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+mcstats = "mcstats.__main__:main"
+
+[tool.setuptools]
+packages = ["mcstats"]

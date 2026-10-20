@@ -1,0 +1,8 @@
+# your own settings
+/config.toml
+# downloaded from Mojang by scripts/fetch_assets.py (not ours to share)
+/assets/
+# skin cache
+/data/
+__pycache__/
+*.pyc

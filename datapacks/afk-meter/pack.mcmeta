@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "AFK meter: counts every second whether a player does something",
+    "min_format": 121,
+    "max_format": 121
+  }
+}
