@@ -100,7 +100,14 @@ function startBlueMap(bm) {
       if (!app?.mapViewer?.map) return setTimeout(ready, 250);
       bluemap = app;
       app.center = bm;
-      app.mapViewer.data.loadedHiresViewDistance = Math.max(160, bm.distance);  // every block of the valley
+      // every block up to the mountains on the horizon, not only the valley
+      app.mapViewer.data.loadedHiresViewDistance = Math.max(innerWidth < 700 ? 260 : 450, bm.distance * (innerWidth < 700 ? 1.3 : 2.2));  // less on phones
+      app.mapViewer.data.loadedLowresViewDistance = Math.max(2500, bm.distance * 10);
+      app.mapViewer.updateLoadedMapArea();
+      // BlueMap lets the camera follow the ground under it, which bobs up and down while turning:
+      // keep one height instead
+      const controls = app.mapViewer.controlsManager.controls || app.mapViewer.controlsManager._controls;
+      if (controls?.mapHeight) controls.mapHeight.update = () => { app.mapViewer.controlsManager.position.y = bm.y; };
       hero.classList.add("w3d", "bluemap");
       document.body.classList.add("w3d");
       new IntersectionObserver(([e]) => { visible = e.isIntersecting; wake(); }).observe(hero);
