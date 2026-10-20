@@ -18,10 +18,11 @@ Made for a fun survival server with your friends. No plugins, no mods: one comma
 ## Features
 
 **The world**
-- **Your real world in 3D** at the top of the page, like the Minecraft title screen: the blocks around the world spawn,
-  read straight from the region files, with the game's own textures. The camera slowly turns around, the players who
-  are online hang around at spawn, and the light follows the time of day and the weather. Built with
-  [three.js](https://threejs.org), loaded after the rest of the page; without WebGL the flat header stays.
+- **Your real world in 3D** at the top of the page: the valley with everyone's home, seen from the air, with a camera
+  slowly circling it and the light following the time of day. When your server runs [BlueMap](https://bluemap.bluecolored.de),
+  its 3D map is shown there (every block, leaves, shadows, and the online players live with their name), without
+  its buttons and menus, through this website so nothing extra has to be opened up. Without BlueMap, the website draws
+  the valley itself from the region files with three.js. Homes come from beds, or set them in the `[world3d]` part of the config.
 - **A sky that follows the game**, drawn with the game's own textures: `clouds.png` drifting by, the sun, the moon in the
   right phase for the day, and when it rains in your world, `rain.png` falling in columns just like in Minecraft. Plus
   the day number, the weather and whether the Ender Dragon has been defeated.
@@ -55,7 +56,8 @@ Made for a fun survival server with your friends. No plugins, no mods: one comma
 ### Privacy by design
 Private messages (`/msg`, `/tell`, …) are never shown, IP addresses are never read, coordinates in commands are hidden
 (`/tp [x y z]`) and inventories are only used to calculate the level, never published. The log tab can be turned off.
-The 3D header shows the area around the world spawn only; players stand at random spots, never at their real position.
+The 3D header without BlueMap has no coordinates (only positions relative to its middle). With BlueMap it shows what
+BlueMap itself already shows, including where online players are.
 The website loads nothing from other sites: fonts, textures and the 3D viewer are all served by your own server.
 
 ## Screenshots

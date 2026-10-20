@@ -411,3 +411,4 @@ body.w3d .ground, body.w3d .ground2 { display: none; }
 @media (max-width: 600px) { .hero.w3d { padding-bottom: 150px; } }
 .hero.w3d::before, .hero.w3d .rainfall { z-index: 1; }
 .hero.w3d > h1, .hero.w3d > .tag, .hero.w3d > .world, .hero.w3d > .splash, .hero.w3d > .online-pill { z-index: 2; }
+.hero iframe.world3d { border: 0; }

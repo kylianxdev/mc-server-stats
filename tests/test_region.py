@@ -2,7 +2,7 @@ import json
 import unittest
 
 from mcstats import demo
-from mcstats.region import section_blocks, visible
+from mcstats.region import _heightmap, section_blocks, standing_spot, valley, visible
 
 
 def pack(indexes, bits):
@@ -57,9 +57,34 @@ class VisibleTest(unittest.TestCase):
 
     def test_demo_world(self):
         out = json.loads(demo.world3d())
-        self.assertGreater(len(out["blocks"]), 1000)
+        w, d = out["size"]
+        self.assertEqual(len(out["h"]), w * d)
+        self.assertGreater(len(out["detail"]), 1000)
         self.assertIn("water", out["palette"])
-        self.assertIn("0,0", out["surface"])
+        self.assertEqual(set(out["homes"]), {"Steve", "Alex", "Noor", "Kai"})
+
+
+class ValleyTest(unittest.TestCase):
+    def test_heightmap(self):
+        # 37 longs of 7 entries of 9 bits, like a chunk of a 384 blocks high world
+        values = [i % 300 for i in range(256)]
+        longs = [sum(v << (9 * j) for j, v in enumerate(values[i:i + 7])) for i in range(0, 256, 7)]
+        self.assertEqual(_heightmap(longs), values)
+
+    def test_no_real_coordinates(self):
+        ground = lambda x, z: 70
+        block = lambda x, y, z: ("grass_block" if y <= 70 else "air", {})
+        out = valley(ground, block, (1000, -2000), {"Steve": (1010, 71, -1990)}, margin=4)
+        self.assertEqual(out["homes"]["Steve"][0::2], [10, 10])
+        self.assertTrue(all(abs(v) < 100 for v in out["detail"]))
+        self.assertEqual(out["origin"], [-14, -14])
+
+    def test_standing_spot_is_outside(self):
+        # a roof over the bed: the player stands next to the house, not on top of it
+        roof = {(x, z) for x in range(-2, 3) for z in range(-2, 3)}
+        spot = standing_spot(lambda x, z: 74 if (x, z) in roof else 70, (0, 71, 0))
+        self.assertNotIn((spot[0], spot[2]), roof)
+        self.assertEqual(spot[1], 71)
 
 
 if __name__ == "__main__":

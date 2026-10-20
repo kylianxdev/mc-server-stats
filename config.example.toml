@@ -38,3 +38,12 @@ extra_admin_commands = ["chunky", "spark", "bluemap"]
 [storage]
 data_dir = "data"
 assets_dir = "assets"
+
+[world3d]
+# The 3D header shows the area with everyone's home, seen from the air. A home is the player's bed
+# (respawn point) unless you set it here: [x, z] or [x, y, z], as shown with F3 in the game.
+# center = [-380, -90]
+# homes = { Steve = [120, -45], Alex = [160, 70, -20] }
+# BlueMap's web server, if it runs: then its 3D map is shown in the header
+# bluemap = "http://localhost:8100"
+# far = 320   # without BlueMap: how far the land goes around it, in blocks

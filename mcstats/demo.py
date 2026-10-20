@@ -15,7 +15,7 @@ from .config import Config
 from .logs import TIME_FMT
 from .hall import hall_of_fame
 from .progress import progress
-from .region import visible
+from .region import is_surface, valley
 from .social import pvp
 from .stats import fun_stats, ores, playtime
 
@@ -214,18 +214,23 @@ def skin_path(cfg: Config, name: str):
     return cfg.assets_dir / "entity" / "player" / model / f"{name.lower()}.png"
 
 
-def world3d() -> bytes:
-    """A small made-up landscape for the 3D header: hills, a pond, trees and flowers."""
-    import json
+def _ground(x: int, z: int) -> int:
+    """Height of the made-up land: a valley, low in the middle with hills around it."""
     import math
+    return round(2.2 * math.sin(x / 7) + 1.8 * math.cos(z / 8) + 1.2 * math.sin((x + z) / 5) + min(x * x + z * z, 9000) / 260)
+
+
+def world3d() -> bytes:
+    """A small made-up valley for the 3D header: hills, a pond, trees, flowers and everyone's house."""
+    import json
     rng = random.Random(3)
-    POND = 0
+    POND, R = 0, 48
     columns: dict[tuple[int, int], dict[int, str]] = {}
-    for x in range(-24, 25):
-        for z in range(-24, 25):
-            h = round(2.6 * math.sin(x / 7) + 2 * math.cos(z / 8) + 1.3 * math.sin((x + z) / 5) + 3 * math.exp(-(x * x + z * z) / 250))  # spawn on a low hill
+    for x in range(-R, R + 1):
+        for z in range(-R, R + 1):
+            h = _ground(x, z)
             col = {y: "stone" for y in range(h - 6, h - 2)} | {y: "dirt" for y in range(h - 2, h)}
-            if (x - 14) ** 2 + (z + 10) ** 2 < 34:  # a pond, its water level flat
+            if (x - 4) ** 2 + (z - 3) ** 2 < 40:  # a pond, its water level flat
                 col = {y: v for y, v in col.items() if y < POND - 1} | {POND - 1: "sand"} | ({POND: "water"} if h >= POND else {})
                 if h < POND:
                     col.update({h: "sand"} | {y: "water" for y in range(h + 1, POND + 1)})
@@ -237,8 +242,34 @@ def world3d() -> bytes:
                 elif r < 0.13:
                     col[h + 1] = rng.choice(["poppy", "dandelion", "cornflower", "oxeye_daisy", "allium"])
             columns[(x, z)] = col
-    for tx, tz in [(-9, 7), (11, 12), (-14, -10), (15, -14), (-3, 16), (19, 3)]:  # oak trees
-        h = max(columns[(tx, tz)])
+    ground = lambda x, z: max(y for y, n in columns[(x, z)].items() if n in ("grass_block", "water", "sand", "dirt"))
+
+    def house(hx, hz, wall, roof):  # a 7×7 house with a door, windows and a pitched roof; returns the bed
+        floor = max(ground(hx + dx, hz + dz) for dx in range(-3, 4) for dz in range(-3, 4))
+        for dx in range(-3, 4):
+            for dz in range(-3, 4):
+                col = columns[(hx + dx, hz + dz)]
+                for y in [y for y in col if y > floor]:
+                    del col[y]
+                for y in range(ground(hx + dx, hz + dz), floor + 1):
+                    col[y] = "cobblestone"
+                edge = abs(dx) == 3 or abs(dz) == 3
+                for y in range(floor + 1, floor + 4):
+                    if edge:
+                        corner = abs(dx) == 3 and abs(dz) == 3
+                        window = y == floor + 2 and not corner and (dx == 0 or dz == 0) and not (dz == 3 and dx == 0)
+                        door = dz == 3 and dx == 0 and y < floor + 3
+                        if not door:
+                            col[y] = "oak_log" if corner else "glass" if window else wall
+                roof_y = floor + 4 + (2 - min(abs(dz), 2)) if abs(dz) < 3 else floor + 4
+                col[roof_y] = roof
+        columns[(hx, hz - 1)][floor + 1] = "red_wool"
+        return (hx, floor + 1, hz - 1)
+
+    homes = {"Steve": house(-17, -12, "oak_planks", "spruce_planks"), "Alex": house(19, -15, "birch_planks", "dark_oak_planks"),
+             "Noor": house(-14, 17, "stone_bricks", "spruce_planks"), "Kai": house(20, 16, "spruce_planks", "bricks")}
+    for tx, tz in [(-30, 6), (11, 30), (-28, -27), (31, -2), (-3, -30), (34, 33), (-36, 30), (3, 38)]:  # oak trees
+        h = ground(tx, tz)
         for dy in range(1, 6):
             columns[(tx, tz)][h + dy] = "oak_log"
         for dx in range(-2, 3):
@@ -246,4 +277,29 @@ def world3d() -> bytes:
                 for dy in range(4, 8):
                     if abs(dx) + abs(dz) + max(0, dy - 6) * 2 <= 3 and (dx or dz or dy > 5) and (tx + dx, tz + dz) in columns:
                         columns[(tx + dx, tz + dz)].setdefault(h + dy, "oak_leaves")
-    return json.dumps(visible(columns, {}, (0, 0, 0)), separators=(",", ":")).encode()
+
+    def top(x, z):
+        if (x, z) not in columns:  # the hills further away
+            return _ground(x, z)
+        ys = [y for y, n in columns[(x, z)].items() if is_surface(n)]
+        return max(ys) if ys else None
+
+    def block(x, y, z):
+        if (x, z) not in columns:
+            return ("grass_block" if y == _ground(x, z) else "air"), {}
+        return columns[(x, z)].get(y, "air"), {}
+    return json.dumps(valley(top, block, (0, 0), homes, margin=12, max_half=R - 4, far=160), separators=(",", ":")).encode()
+
+
+def live3d() -> dict[str, list[float]]:
+    """Where the online demo players are right now: Steve walks between his house and the pond, Noor is at home."""
+    import math
+    import time
+    path = [(-17, -8), (-8, -4), (0, -3), (-2, 8), (-12, 9), (-20, 0)]
+    t = time.time() / 4 % len(path)  # 4 seconds from point to point
+    (ax, az), (bx, bz) = path[int(t)], path[(int(t) + 1) % len(path)]
+    f = t - int(t)
+    x, z = ax + (bx - ax) * f, az + (bz - az) * f
+    yaw = math.degrees(math.atan2(-(bx - ax), bz - az))
+    return {"Steve": [round(x, 1), _ground(round(x), round(z)) + 1, round(z, 1), round(yaw)],
+            "Noor": [-14.5, _ground(-14, 22) + 1, 22.5, 180]}

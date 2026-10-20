@@ -29,6 +29,11 @@ class Config:
     afk_since: str = ""
     skin_check_interval: int = 180
     extra_admin_commands: list[str] = field(default_factory=list)
+    # 3D header: the middle of the area and the homes (otherwise: everyone's bed)
+    world3d_center: list[int] = field(default_factory=list)
+    world3d_homes: dict[str, list[int]] = field(default_factory=dict)
+    world3d_far: int = 320  # how far the land goes around it (coarser), in blocks
+    bluemap_url: str = "http://localhost:8100"  # for live player positions, if BlueMap runs
     # storage
     data_dir: Path = ROOT / "data"
     assets_dir: Path = ROOT / "assets"
@@ -57,6 +62,7 @@ def load(path: str | Path | None) -> Config:
     raw = tomllib.loads(path.read_text(encoding="utf-8"))
     mc, web, site = raw.get("minecraft", {}), raw.get("web", {}), raw.get("site", {})
     privacy, feat, storage = raw.get("privacy", {}), raw.get("features", {}), raw.get("storage", {})
+    w3d = raw.get("world3d", {})
 
     if "dir" in mc:
         cfg.minecraft_dir = _path(mc["dir"], base)
@@ -73,6 +79,10 @@ def load(path: str | Path | None) -> Config:
     cfg.afk_since = str(feat.get("afk_since", cfg.afk_since))
     cfg.skin_check_interval = int(feat.get("skin_check_interval_seconds", cfg.skin_check_interval))
     cfg.extra_admin_commands = list(feat.get("extra_admin_commands", cfg.extra_admin_commands))
+    cfg.world3d_center = [int(v) for v in w3d.get("center", [])]
+    cfg.world3d_far = int(w3d.get("far", cfg.world3d_far))
+    cfg.bluemap_url = str(w3d.get("bluemap", cfg.bluemap_url))
+    cfg.world3d_homes = {str(p): [int(v) for v in pos] for p, pos in w3d.get("homes", {}).items()}
     if "data_dir" in storage:
         cfg.data_dir = _path(storage["data_dir"], base)
     if "assets_dir" in storage:

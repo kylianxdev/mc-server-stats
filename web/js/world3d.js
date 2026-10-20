@@ -1,6 +1,9 @@
-// The header as a real Minecraft world, like the title screen: the blocks around the world spawn
-// (read from the region files by the server), a camera slowly turning around, the online players
-// hanging around at spawn, and the light following the time of day and the weather.
+// The header as a real Minecraft world: the valley with everyone's home, seen from the air with a
+// camera slowly circling it. The light follows the time of day and the weather.
+//
+// When the server runs BlueMap, its own 3D map is shown (every block, perfectly rendered, with the
+// online players as live markers), without its buttons and menus. Otherwise this website draws the
+// valley itself from the region files with three.js, and the land around it in coarser blocks.
 //
 // three.js is only loaded after the page itself is drawn; without WebGL the flat header stays.
 import { S } from "./state.js";
@@ -8,8 +11,8 @@ import { color } from "./util.js";
 import { composeSkin } from "./skins.js";
 
 let THREE = null, renderer = null, scene = null, camera = null, canvas = null;
-let solidMats = [], center = { y: 0 }, size = 24, surface = {}, walkable = [], players = new Map();
-let running = false, visible = true, frame = 0, last = 0, angle = 0, camY = null, light = 1, drawn = 0;
+let solidMats = [], middle = 0, size = 24, homes = {}, players = new Map(), heightAt = () => null;
+let running = false, visible = true, frame = 0, last = 0, angle = 0, light = 1, drawn = 0;
 const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Minecraft's plains colors for grass, leaves and water (the textures themselves are grey)
@@ -45,8 +48,10 @@ export async function startWorld3d() {
   canvas.className = "world3d";
   let world;
   try {
-    [THREE, world] = await Promise.all([import("/assets/js/three.module.min.js"), fetch("/api/world3d").then(r => r.json())]);
-    if (!world.blocks?.length) throw new Error("no blocks");
+    world = await fetch("/api/world3d").then(r => r.json());
+    if (world.bluemap) return startBlueMap(world.bluemap);
+    THREE = await import("/assets/js/three.module.min.js");
+    if (!world.h?.length) throw new Error("no world");
     renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: "low-power" });
   } catch (e) {
     canvas = null;  // keep the flat header
@@ -56,7 +61,7 @@ export async function startWorld3d() {
   renderer.setClearColor(0x000000, 0);
   scene = new THREE.Scene();
   scene.fog = new THREE.Fog(SKY.night[0], 14, 30);
-  camera = new THREE.PerspectiveCamera(55, 2, 0.1, 200);
+  camera = new THREE.PerspectiveCamera(50, 2, 0.5, 1000);
 
   const textures = new Set(await fetch("/assets/textures.json").then(r => r.json()).catch(() => []));
   buildTerrain(world, textures);
@@ -73,8 +78,54 @@ export async function startWorld3d() {
   wake();
 }
 
+/* ---------- BlueMap ---------- */
+let bluemap = null;
+
+function startBlueMap(bm) {
+  const frame = document.createElement("iframe");
+  frame.className = "world3d";
+  frame.tabIndex = -1;
+  frame.setAttribute("aria-hidden", "true");
+  // map:x:y:z:distance:rotation:angle:tilt:ortho:mode (angle: 0 is straight down)
+  frame.src = `/bluemap/#${bm.map}:${bm.x}:${bm.y}:${bm.z}:${bm.distance}:0:0.78:0:0:perspective`;
+  const hero = document.querySelector(".hero");
+  hero.insertBefore(frame, document.getElementById("rain"));
+  canvas = frame;
+  frame.addEventListener("load", () => {
+    const doc = frame.contentDocument, style = doc.createElement("style");
+    style.textContent = "#app { display: none !important; } body { cursor: default; }";  // only the map, no menus
+    doc.head.appendChild(style);
+    const ready = () => {
+      const app = frame.contentWindow.bluemap;
+      if (!app?.mapViewer?.map) return setTimeout(ready, 250);
+      bluemap = app;
+      app.center = bm;
+      app.mapViewer.data.loadedHiresViewDistance = Math.max(160, bm.distance);  // every block of the valley
+      hero.classList.add("w3d", "bluemap");
+      document.body.classList.add("w3d");
+      new IntersectionObserver(([e]) => { visible = e.isIntersecting; wake(); }).observe(hero);
+      document.addEventListener("visibilitychange", wake);
+      updateWorld3d();
+      wake();
+    };
+    ready();
+  });
+}
+
 /** Called on every live update: light, fog and the online players. */
 export function updateWorld3d() {
+  if (bluemap) {
+    const sky = document.querySelector(".hero").dataset.sky || "night";
+    // a bit lighter than the game at night, so the valley stays visible behind the title
+    const sun = { day: 1, dawn: 0.75, dusk: 0.75, night: 0.5 }[sky] * (S.data.world?.raining ? 0.8 : 1);
+    const u = bluemap.mapViewer.data?.uniforms;
+    if (u?.sunlightStrength) {
+      u.sunlightStrength.value = sun;
+      u.ambientLight.value = sky === "night" ? 0.3 : 0.15;
+      bluemap.mapViewer.redraw();
+    }
+    return;
+  }
   if (!scene) return;
   const sky = document.querySelector(".hero").dataset.sky || "night";
   const [fog, bright] = SKY[sky] || SKY.night;
@@ -97,6 +148,7 @@ function texture(path) {
     if (still) draw(performance.now());
   });
   t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestMipmapLinearFilter;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;  // the coarse land far away repeats a texture over several blocks
   t.colorSpace = THREE.SRGBColorSpace;
   return (texCache[path] = t);
 }
@@ -127,7 +179,7 @@ function resolver(textures) {
 function buildTerrain(world, textures) {
   const tex = resolver(textures);
   const at = new Map(), key = (x, y, z) => `${x},${y},${z}`;
-  const b = world.blocks;  // flat: x, y, z, palette index, x, y, …
+  const b = world.detail;  // every block around the homes, flat: x, y, z, palette index, x, y, …
   for (let i = 0; i < b.length; i += 4) at.set(key(b[i], b[i + 1], b[i + 2]), world.palette[b[i + 3]]);
   const name = s => s?.split(":")[0];
   const kind = s => {
@@ -141,23 +193,27 @@ function buildTerrain(world, textures) {
   };
   const opaque = s => kind(s) === "cube" && !SEE_THROUGH.test(name(s));
 
-  surface = world.surface || {};
-  center.y = surface["0,0"] ?? 0;
-  // how far the world goes: the camera circles at a fitting distance and the fog hides the edges
-  size = Math.max(8, ...Object.keys(surface).map(k => Math.max(...k.split(",").map(v => Math.abs(+v)))));
-  scene.fog.near = size * 0.4; scene.fog.far = size * 1.05;
-  // where players may stand: the top of the column is a normal block, near the spawn height
-  walkable = Object.entries(surface).map(([k, y]) => [...k.split(",").map(Number), y])
-    .filter(([x, z, y]) => Math.hypot(x, z) > 4 && Math.hypot(x, z) < 9 && kind(at.get(key(x, y, z))) !== "liquid"
-      && !/leaves|log/.test(at.get(key(x, y, z)) || ""));
+  // the ground: one height per column (from the game's heightmap), its top block and the block under it
+  const [W, D] = world.size, [ox, oz] = world.origin;
+  heightAt = (x, z) => {
+    const i = Math.floor(x) - ox, j = Math.floor(z) - oz;
+    return i < 0 || j < 0 || i >= W || j >= D ? null : world.h[j * W + i];
+  };
+  const inPatch = (x, z) => world.patches.some(([x0, z0, x1, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1);
+  homes = world.homes || {};
+  size = Math.max(W, D) / 2;
+  const hs = Object.values(homes).map(h => h[1]);
+  middle = hs.length ? hs.reduce((a, b) => a + b, 0) / hs.length : heightAt(0, 0) ?? 0;
+  scene.fog.near = size * 1.3; scene.fog.far = size * 3;
 
   const groups = {};  // texture|tint|mode -> arrays
   const group = (path, tint, mode) => {
     const k = `${path}|${tint}|${mode}`;
     return (groups[k] ??= { path, tint, mode, pos: [], uv: [], col: [], idx: [] });
   };
+  const colors = {};
   const quad = (g, corners, uvs, shade, tint) => {
-    const c = new THREE.Color(tint ?? 0xffffff).multiplyScalar(shade), n = g.pos.length / 3;
+    const c = (colors[`${tint}|${shade}`] ??= new THREE.Color(tint ?? 0xffffff).multiplyScalar(shade)), n = g.pos.length / 3;
     for (let i = 0; i < 4; i++) { g.pos.push(...corners[i]); g.uv.push(...uvs[i]); g.col.push(c.r, c.g, c.b); }
     g.idx.push(n, n + 1, n + 2, n, n + 2, n + 3);
   };
@@ -202,6 +258,55 @@ function buildTerrain(world, textures) {
     }
   }
 
+  // the ground around it: top faces, and sides where the land drops (as far as you can see from the air)
+  const full = [[0, 0], [1, 0], [1, 1], [0, 1]];
+  for (let j = 0; j < D; j++) for (let i = 0; i < W; i++) {
+    const h = world.h[j * W + i], x = ox + i, z = oz + j;
+    if (h == null || inPatch(x, z)) continue;
+    const top = name(world.palette[world.t[j * W + i]]), under = name(world.palette[world.u[j * W + i]]);
+    // seen from above, leaves and water are simply the surface (like the game's "fast" graphics)
+    const mode = n => (n.includes("leaves") ? "opaque" : "solid");
+    const topTex = tex(top, "py");
+    if (topTex) quad(group(topTex, tintOf(top, "py"), mode(top)), FACES.py.c.map(([cx, , cz]) => [x + cx, h + 1, z + cz]), full, 1, tintOf(top, "py"));
+    for (const side of ["px", "nx", "pz", "nz"]) {
+      const f = FACES[side], n = heightAt(x + f.n[0], z + f.n[2]);
+      for (let y = Math.max(n == null ? h - 3 : n + 1, h - 24); y <= h; y++) {
+        const blk = y === h || !tex(under, side) ? top : under, path = tex(blk, side);
+        if (!path) continue;
+        quad(group(path, tintOf(blk, side), mode(blk)), f.c.map(([cx, cy, cz]) => [x + cx, y + cy, z + cz]), full, SHADE[side], tintOf(blk, side));
+      }
+    }
+  }
+
+  // the land around it up to the horizon: one column for every step×step blocks
+  const far = world.far;
+  if (far) {
+    const { step: k, size: [FW, FD], origin: [fx, fz] } = far;
+    const fh = (i, j) => (i < 0 || j < 0 || i >= FW || j >= FD ? undefined : far.h[j * FW + i]);
+    const below = n => (/grass_block|dirt|podzol|mycelium/.test(n) ? "dirt" : n);
+    for (let j = 0; j < FD; j++) for (let i = 0; i < FW; i++) {
+      const h = fh(i, j);
+      if (h == null) continue;
+      const top = name(world.palette[far.t[j * FW + i]]), x = fx + i * k, z = fz + j * k, m = top.includes("leaves") ? "opaque" : "solid";
+      const tt = tex(top, "py");
+      if (tt) quad(group(tt, tintOf(top, "py"), m), FACES.py.c.map(([cx, , cz]) => [x + cx * k, h + 1, z + cz * k]), [[0, 0], [k, 0], [k, k], [0, k]], 1, tintOf(top, "py"));
+      for (const side of ["px", "nx", "pz", "nz"]) {
+        const f = FACES[side], n = fh(i + f.n[0], j + f.n[2]);
+        if (n === null) continue;  // next to the detailed middle: that draws its own sides
+        const lo = Math.max(n === undefined ? h - 6 : n + 1, h - 40);
+        if (lo > h) continue;
+        // the top block's side, and below it the ground it stands on
+        const parts = [[h, h + 1, top], [lo, h, below(top)]];
+        for (const [y0, y1, blk] of parts) {
+          const path = y1 > y0 && tex(blk, side);
+          if (!path) continue;
+          quad(group(path, tintOf(blk, side), m), f.c.map(([cx, cy, cz]) => [x + cx * k, cy ? y1 : y0, z + cz * k]),
+            [[0, 0], [k, 0], [k, y1 - y0], [0, y1 - y0]], SHADE[side], tintOf(blk, side));
+        }
+      }
+    }
+  }
+
   for (const g of Object.values(groups)) {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(g.pos, 3));
@@ -243,6 +348,9 @@ function skinBox(w, h, d, u, v, grow = 0) {
   return g;
 }
 
+const FIGURE = 2.6;
+
+/** A name tag that keeps the same size on screen, however far away it is. */
 function nameTag(p) {
   const c = document.createElement("canvas"), x = c.getContext("2d"), font = '28px "VT323", monospace';
   x.font = font;
@@ -252,8 +360,8 @@ function nameTag(p) {
   x.fillStyle = color(p); x.textBaseline = "middle"; x.fillText(p, 8, 19);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, fog: false, depthTest: false }));
-  s.scale.set(w / 36 * 0.5, 0.5, 1);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, fog: false, depthTest: false, sizeAttenuation: false }));
+  s.scale.set(w / 36 * 0.05, 0.05, 1);
   s.renderOrder = 10;
   return s;
 }
@@ -284,47 +392,52 @@ async function makePlayer(p) {
   part("larm", [aw, 12, 4, 32, 48, 48, 48], [4 + aw / 2, 24, 0]);
   part("rleg", [4, 12, 4, 0, 16, 0, 32], [-2, 12, 0]);
   part("lleg", [4, 12, 4, 16, 48, 0, 48], [2, 12, 0]);
-  root.scale.setScalar(0.9 / 16);
+  root.scale.setScalar(FIGURE / 16);  // bigger than life, or you couldn't see them from up here
   const tag = nameTag(p);
-  tag.position.y = 38;
-  tag.scale.multiplyScalar(16 / 0.9);
+  tag.position.y = 40;
+  tag.scale.multiplyScalar(16 / FIGURE);  // undo the figure's scale: the tag keeps its size on screen
   root.add(tag);
-  // everyone on their own spot near spawn, facing more or less towards the middle
-  const taken = [...players.values()].filter(q => q.root).map(q => q.root.position);
-  const free = walkable.filter(([x, z]) => taken.every(q => Math.hypot(q.x - x - 0.5, q.z - z - 0.5) > 1.5));
-  const spot = free[Math.floor(Math.random() * free.length)] || [2, 2, center.y];
-  root.position.set(spot[0] + 0.5, spot[2] + 1, spot[1] + 0.5);
-  root.rotation.y = Math.atan2(-spot[0], -spot[1]) + (Math.random() - 0.5);
   scene.add(root);
   return { root, parts, mat, map, phase: Math.random() * 14 };
 }
 
+// online players inside the picture: where they really are now (the server sends it every few seconds)
 async function syncPlayers() {
-  const online = Object.entries(S.data.profiles || {}).filter(([, v]) => v.online).map(([p]) => p).slice(0, 8);
+  const live = S.data.live3d || {};
   for (const [p, pl] of players) {
-    if (online.includes(p)) continue;
+    if (live[p]) continue;
     players.delete(p);
     if (pl.root) { scene.remove(pl.root); pl.map.dispose(); pl.mat.dispose(); }
   }
-  for (const p of online) {
-    if (players.has(p)) continue;
-    players.set(p, {});  // reserved while the skin loads
+  for (const [p, pos] of Object.entries(live)) {
+    if (players.has(p)) { players.get(p).goal = pos; continue; }
+    players.set(p, { goal: pos });  // reserved while the skin loads
     const pl = await makePlayer(p).catch(() => null);
-    if (players.has(p) && pl) { players.set(p, pl); pl.mat.color.setScalar(light); }
+    if (!players.has(p) || !pl) continue;
+    const goal = players.get(p).goal;
+    pl.root.position.set(goal[0], goal[1], goal[2]);
+    pl.root.rotation.y = -goal[3] * Math.PI / 180;
+    pl.mat.color.setScalar(light);
+    players.set(p, { ...pl, goal });
   }
 }
 
-const heightAt = (x, z) => surface[`${Math.floor(x)},${Math.floor(z)}`];
-
-// players just hang around at spawn: looking around, breathing, now and then a wave
-function idle(pl, t) {
-  const p = pl.parts, k = t + pl.phase;
-  p.head.rotation.y = Math.sin(k * 0.35) * 0.6;
-  p.head.rotation.x = Math.sin(k * 0.23) * 0.12;
-  const wave = k % 14 < 1.6 ? Math.sin((k % 14) / 1.6 * Math.PI) : 0;  // every 14 seconds or so
-  p.rarm.rotation.x = -2.6 * wave;
-  p.rarm.rotation.z = -0.05 - Math.sin(k * 1.3) * 0.03 - 0.3 * wave * (1 + Math.sin(k * 14) * 0.5);
-  p.larm.rotation.z = 0.05 + Math.sin(k * 1.3) * 0.03;
+// between updates players walk smoothly to where they are now; standing still they look around
+function animate(pl, dt, t) {
+  const pos = pl.root.position, [gx, gy, gz, yaw] = pl.goal, p = pl.parts;
+  const dx = gx - pos.x, dz = gz - pos.z, dist = Math.hypot(dx, dz);
+  if (dist > 40) pos.set(gx, gy, gz);  // teleported or flew far: jump there
+  const speed = Math.min(dist, Math.max(4.3, dist / 5) * dt);  // about walking speed, faster when far behind
+  const moving = dist > 0.15;
+  if (moving) { pos.x += (dx / dist) * speed; pos.z += (dz / dist) * speed; }
+  pos.y += (gy - pos.y) * Math.min(1, dt * 4);
+  let want = moving ? Math.atan2(dx, dz) : -yaw * Math.PI / 180, turn = want - pl.root.rotation.y;
+  pl.root.rotation.y += Math.atan2(Math.sin(turn), Math.cos(turn)) * Math.min(1, dt * 6);
+  pl.step = (pl.step || 0) + (moving ? dt * 9 : 0);
+  const swing = moving ? Math.sin(pl.step) * 0.8 : 0, k = t + pl.phase;
+  p.rarm.rotation.x = swing; p.larm.rotation.x = -swing; p.rleg.rotation.x = -swing; p.lleg.rotation.x = swing;
+  p.head.rotation.y = moving ? 0 : Math.sin(k * 0.35) * 0.5;
+  p.rarm.rotation.z = -0.05 - Math.sin(k * 1.3) * 0.03; p.larm.rotation.z = 0.05 + Math.sin(k * 1.3) * 0.03;
 }
 
 /* ---------- camera and loop ---------- */
@@ -338,6 +451,7 @@ function resize() {
 }
 
 function wake() {
+  if (!renderer && !bluemap) return;
   const should = visible && !document.hidden && !still;
   if (should && !running) { running = true; last = 0; frame = requestAnimationFrame(loop); }
   if (!should) { running = false; cancelAnimationFrame(frame); }
@@ -353,16 +467,21 @@ function loop(now) {
 
 function draw(now) {
   const dt = Math.min(0.1, (now - (last || now)) / 1000); last = now;
-  if (!still) angle += dt * (Math.PI * 2 / 150);  // one round in two and a half minutes
-  // like the title screen: standing on the spawn, slowly turning around, looking a bit down over the land
-  let ground = center.y;
-  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) ground = Math.max(ground, heightAt(dx + 0.5, dz + 0.5) ?? -1e9);
-  const want = ground + 3.2;
-  camY = camY == null ? want : camY + (want - camY) * Math.min(1, dt * 0.8);
-  camera.position.set(0.5, camY, 0.5);
-  const pitch = -0.22;
-  camera.lookAt(0.5 + Math.sin(angle) * Math.cos(pitch), camY + Math.sin(pitch), 0.5 + Math.cos(angle) * Math.cos(pitch));
+  if (bluemap) {  // BlueMap draws itself: just turn its camera slowly
+    const cm = bluemap.mapViewer.controlsManager, cam = bluemap.mapViewer.camera.position, c = bluemap.center;
+    if (!still) cm.rotation += dt * (Math.PI * 2 / 240);
+    // aim a bit past the middle, so the homes sit in the lower half of the banner, under the title
+    const dx = c.x - cam.x, dz = c.z - cam.z, l = Math.hypot(dx, dz) || 1, k = c.distance * 0.3;
+    cm.position.x = c.x + (dx / l) * k;
+    cm.position.z = c.z + (dz / l) * k;
+    return;
+  }
+  if (!still) angle += dt * (Math.PI * 2 / 240);  // one round in four minutes
+  // from the air: circling the valley, looking down at the homes in the middle
+  const r = size * 1.05;
+  camera.position.set(Math.sin(angle) * r, middle + size * 0.75, Math.cos(angle) * r);
+  camera.lookAt(0, middle + size * 0.12, 0);
   const t = now / 1000;
-  for (const pl of players.values()) if (pl.root) idle(pl, t);
+  for (const pl of players.values()) if (pl.root) animate(pl, still ? 1 : dt, t);
   renderer.render(scene, camera);
 }
