@@ -104,10 +104,15 @@ function startBlueMap(bm) {
       app.mapViewer.data.loadedHiresViewDistance = Math.max(innerWidth < 700 ? 260 : 450, bm.distance * (innerWidth < 700 ? 1.3 : 2.2));  // less on phones
       app.mapViewer.data.loadedLowresViewDistance = Math.max(2500, bm.distance * 10);
       app.mapViewer.updateLoadedMapArea();
-      // BlueMap lets the camera follow the ground under it, which bobs up and down while turning:
-      // keep one height instead
-      const controls = app.mapViewer.controlsManager.controls || app.mapViewer.controlsManager._controls;
-      if (controls?.mapHeight) controls.mapHeight.update = () => { app.mapViewer.controlsManager.position.y = bm.y; };
+      // BlueMap draws every frame of the screen (60 to 144 times a second) while the camera turns, also
+      // when the banner is scrolled away: 30 frames a second, and only while it can be seen
+      const viewer = app.mapViewer, inner = viewer.renderLoop;
+      let shown = 0;
+      viewer.renderLoop = now => {
+        if (!visible || document.hidden || now - shown < 33) return requestAnimationFrame(viewer.renderLoop);
+        shown = now;
+        inner(now);
+      };
       hero.classList.add("w3d", "bluemap");
       document.body.classList.add("w3d");
       new IntersectionObserver(([e]) => { visible = e.isIntersecting; wake(); }).observe(hero);
@@ -467,7 +472,7 @@ function wake() {
 function loop(now) {
   if (!running) return;
   frame = requestAnimationFrame(loop);
-  if (now - drawn < 45) return;  // ~20 frames per second is plenty for a slow camera and saves battery
+  if (now - drawn < (bluemap ? 33 : 45)) return;  // 20 to 30 frames per second is plenty for a slow camera and saves battery
   drawn = now;
   draw(now);
 }
@@ -477,6 +482,10 @@ function draw(now) {
   if (bluemap) {  // BlueMap draws itself: just turn its camera slowly
     const cm = bluemap.mapViewer.controlsManager, cam = bluemap.mapViewer.camera.position, c = bluemap.center;
     if (!still) cm.rotation += dt * (Math.PI * 2 / 240);
+    // BlueMap lets the camera follow the ground under it, which bobs up and down while turning:
+    // keep one height instead (checked every frame, BlueMap sets up its controls late)
+    const height = cm._controls?.mapHeight;
+    if (height && !height.fixed) { height.fixed = true; height.update = () => { cm.position.y = c.y; }; }
     // aim a bit past the middle, so the homes sit in the lower half of the banner, under the title
     const dx = c.x - cam.x, dz = c.z - cam.z, l = Math.hypot(dx, dz) || 1, k = c.distance * 0.3;
     cm.position.x = c.x + (dx / l) * k;
