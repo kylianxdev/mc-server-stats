@@ -35,6 +35,8 @@ class Config:
     world3d_far: int = 320  # how far the land goes around it (coarser), in blocks
     bluemap_url: str = "http://localhost:8100"  # for live player positions, if BlueMap runs
     bluemap_maps: Path | None = None  # BlueMap's map files (file storage), to send its tiles straight from disk
+    # milestones in the game chat: the tmux session of the server console ("" = only on the website)
+    console_tmux: str = ""
     # storage
     data_dir: Path = ROOT / "data"
     assets_dir: Path = ROOT / "assets"
@@ -68,6 +70,7 @@ def load(path: str | Path | None) -> Config:
     mc, web, site = raw.get("minecraft", {}), raw.get("web", {}), raw.get("site", {})
     privacy, feat, storage = raw.get("privacy", {}), raw.get("features", {}), raw.get("storage", {})
     w3d = raw.get("world3d", {})
+    cfg.console_tmux = str(raw.get("milestones", {}).get("tmux", cfg.console_tmux))
 
     if "dir" in mc:
         cfg.minecraft_dir = _path(mc["dir"], base)

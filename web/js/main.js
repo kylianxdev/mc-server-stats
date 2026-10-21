@@ -10,6 +10,7 @@ import { viewVersus } from "./views/versus.js";
 import { advancementScreen, loadAdvancements } from "./views/advancements.js";
 import { updateSky } from "./sky.js";
 import { startWorld3d, updateWorld3d } from "./world3d.js";
+import { updateTab } from "./tab.js";
 
 const POLL_MS = 5000;
 // remember the scroll position of every page, so "back" returns to the same spot
@@ -40,7 +41,6 @@ function renderSky() {
 function renderChrome() {
   const site = S.data.site;
   renderSky();
-  document.title = site.title;
   $("title").textContent = site.title;
   $("tagline").textContent = site.tagline || "";
   $("navServer").innerHTML = `${tex("block/grass_block_side", "s")} ${t("nav.server")}`;
@@ -71,6 +71,7 @@ function render() {
     renderTable();
   }
   const on = onlineNow();
+  updateTab(on);
   $("onlinePill").innerHTML = `<span class="dot ${on.length ? "on" : ""}"></span> ${on.length
     ? t("online.some", { n: on.length }) + " " + on.map(p => `<span style="color:${color(p)}">${esc(p)}</span>`).join(", ")
     : t("online.none")}`;

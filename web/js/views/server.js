@@ -5,7 +5,7 @@ import { dayBars, hourStrip, kpi, xpBar } from "../charts.js";
 import { head3d, v3d } from "../skins.js";
 import { bestXp, color, dur, esc, fmtDate, icon, nf, players, sumRow, tex, xpPerHour } from "../util.js";
 import { titleOf } from "../titles.js";
-import { activityPanel, buddiesPanel, hallOfFame, pvpPanel, weekPanel } from "./social.js";
+import { activityPanel, buddiesPanel, hallOfFame, pvpPanel, togetherPanel, weekPanel } from "./social.js";
 
 const DIMENSIONS = { overworld: "block/grass_block_side", the_nether: "block/netherrack", the_end: "block/end_stone" };
 export const dimensionIcon = p => {
@@ -49,6 +49,7 @@ export function viewServer() {
     <h2>${tex("item/name_tag", "s")} ${t("section.players")}</h2>${playerCards()}
     ${flow(weekPanel(), buddiesPanel())}
     ${hallOfFame()}
+    ${togetherPanel()}
     <h2>${tex("item/gold_ingot", "s")} ${t("section.leaderboards")}</h2>
     <div class="grid lbs">${leaderboards(ps)}</div>
     ${flow(activityPanel(), pvpPanel())}`;

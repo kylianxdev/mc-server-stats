@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import random
+from types import SimpleNamespace
 
 from . import __version__
 from .config import Config
@@ -17,6 +18,7 @@ from .hall import hall_of_fame
 from .progress import progress
 from .region import is_surface, valley
 from .scoreboard import armor_color
+from . import milestones
 from .social import pvp
 from .stats import fun_stats, ores, playtime
 
@@ -186,9 +188,20 @@ def data(cfg: Config) -> dict:
                     {"a": "Kai", "b": "Zuri", "s": 5 * 3600}],
         "pvp": pvp(profiles),
         "ores": ores(stats),
+        "milestones": _milestones(fun, playtime(stats), t),
         "history": _history(prog, playtime(stats), now),
         "skins": {p: {"model": m, "v": "demo"} for p, (m, *_) in PLAYERS.items()},
     }
+
+
+def _milestones(fun, times, t) -> dict:
+    """What the made-up server reached together, the newest a few hours ago."""
+    report = milestones.Milestones.report(SimpleNamespace(state=None), fun, times)
+    reached = [m for m in report["progress"] if m["reached"]]
+    top = milestones.totals(fun, times)
+    report["log"] = [{"key": m["key"], "n": m["reached"], "t": t(5 + 17 * i), "top": top[m["key"]][1], "top_n": round(top[m["key"]][2])}
+                     for i, m in enumerate(reached[:8])]
+    return report
 
 
 def _history(prog, times, now) -> dict:

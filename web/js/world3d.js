@@ -119,8 +119,8 @@ function startBlueMap(bm) {
         app.ahead_x = undefined;  // load again with the full reach
       };
       const started = performance.now(), wait = setInterval(() => {
-        const tiles = viewer.map.hiresTileManager;
-        if ((tiles.tiles.size && !tiles.currentlyLoading) || performance.now() - started > 3000) { clearInterval(wait); done(); }
+        const tiles = viewer.map?.hiresTileManager;
+        if ((tiles?.tiles.size && !tiles.currentlyLoading) || performance.now() - started > 3000) { clearInterval(wait); done(); }
       }, 100);
       // sharp enough behind the title, without drawing four pixels for every pixel on retina screens
       viewer.superSampling = Math.min(1, 1.5 / devicePixelRatio);

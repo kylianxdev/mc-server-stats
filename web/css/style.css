@@ -412,3 +412,7 @@ body.w3d .ground, body.w3d .ground2 { display: none; }
 .hero.w3d::before, .hero.w3d .rainfall { z-index: 1; }
 .hero.w3d > h1, .hero.w3d > .tag, .hero.w3d > .world, .hero.w3d > .splash, .hero.w3d > .online-pill { z-index: 2; }
 .hero iframe.world3d { border: 0; }
+/* milestones together: the label on its own line, the bar under it */
+.together .cmp .row { grid-template-columns: 1fr auto; row-gap: 4px; }
+.together .cmp .track { grid-column: 1 / -1; grid-row: 2; }
+.together .cmp .rk { min-width: 0; }

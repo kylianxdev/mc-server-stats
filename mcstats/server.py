@@ -7,6 +7,8 @@ import hashlib
 import json
 import logging
 import re
+import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -19,6 +21,7 @@ from .history import History, snapshot
 from .world import world_state
 from .config import Config
 from .logs import LogParser
+from .milestones import Milestones
 from .progress import progress
 from .region import World3D, live_positions
 from .skins import Skins
@@ -38,6 +41,7 @@ class App:
         self.skins = Skins(cfg)
         self.history = History(cfg)
         self.world3d = None if demo_mode else World3D(cfg)
+        self.milestones = None if demo_mode else Milestones(cfg)
 
     def data(self) -> dict:
         cfg = self.cfg
@@ -53,6 +57,7 @@ class App:
         online = {p for p, pr in base["profiles"].items() if pr["online"]}
         prog = progress(fun, stats, equipment, playerdata.advancements_done(adv_times), base["profiles"])
         times = playtime(stats)
+        self.milestones.check(fun, times, online)
         snap = snapshot(fun, prog, times)
         self.history.record(snap)
         out = {
@@ -71,6 +76,7 @@ class App:
             "buddies": social.buddies(sessions),
             "pvp": social.pvp(base["profiles"]),
             "ores": ores(stats),
+            "milestones": self.milestones.report(fun, times),
             "history": self.history.report(snap),
             "skins": self.skins.info(),
             # online players inside the 3D header: where they are now, relative to its middle
@@ -198,6 +204,12 @@ def make_handler(app: App):
                     return self.send(body, MIME[".json"], "max-age=300")
                 if path == "/api/data":
                     return self.send(json.dumps(app.data()).encode(), MIME[".json"])
+                if path in ("/favicon.png", "/favicon.ico"):
+                    # the server's own icon (server-icon.png), otherwise a grass block
+                    f = cfg.minecraft_dir / "server-icon.png"
+                    if app.demo or not f.is_file():
+                        f = cfg.assets_dir / "block" / "grass_block_side.png"
+                    return self.send(f.read_bytes(), MIME[".png"], "public, max-age=86400")
                 if path in ("/", "/index.html"):
                     return self.send(index_html(cfg.web_dir), MIME[".html"], "no-cache")
                 if m := re.fullmatch(r"/skin/(\w{1,16})\.png", path):
@@ -240,6 +252,15 @@ def serve(cfg: Config, demo_mode: bool = False):
         log.info("demo mode: showing a made-up server")
     else:
         app.skins.start()
+
+        def watch():  # milestones are noticed (and announced) also when nobody looks at the website
+            while True:
+                time.sleep(60)
+                try:
+                    app.data()
+                except Exception:
+                    log.exception("milestone check failed")
+        threading.Thread(target=watch, daemon=True, name="milestones").start()
     httpd = ThreadingHTTPServer((cfg.host, cfg.port), make_handler(app))
     log.info("mc-server-stats %s on http://%s:%d (Minecraft: %s)", __version__, cfg.host, cfg.port, cfg.minecraft_dir)
     httpd.serve_forever()

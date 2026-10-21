@@ -42,6 +42,8 @@ Made for a fun survival server with your friends. No plugins, no mods: one comma
 - **Player of the week** and everyone's progress this week, from daily snapshots (`scripts/backfill_history.py` can fill
   them from old backups). Optional weekly recap in the game chat.
 - **Hall of Fame**: who was the first on the server, with diamonds, in the Nether, in the End, to defeat the dragon, …
+- **Reached together**: milestones of everyone together ("1,000 diamonds mined!"), with the closest ones next. New ones can be announced in the game chat with the advancement sound (`[milestones] tmux`).
+- **Browser tab** with the server's own icon, a green dot with the number of players online, and the page you're on.
 - **Best buddies** (who plays together most), **player vs player** results and the **latest events** of everyone.
 - **Leaderboards** for every statistic, with spinning 3D heads.
 

@@ -79,3 +79,26 @@ export function activityPanel(limit = 12) {
       ? `<div class="it"><div class="frame ${e.kind}">${tex("item/book")}</div><div>${who(e.p)} <span class="adv-${e.kind}">[${esc(advancementTitle(e.a))}]</span><div class="t">${fmtDate(e.t)}</div></div></div>`
       : `<div class="it"><div class="frame task">${tex("item/bone")}</div><div>${esc(deathMessage(e.p, e.m))}<div class="t">${fmtDate(e.t)}</div></div></div>`).join("")}</div></div>`;
 }
+
+/** Milestones of everyone together: the newest reached, and the ones that are closest. */
+export function togetherPanel() {
+  const m = S.data.milestones;
+  if (!m) return "";
+  const what = (key, n) => t(`together.${key}`, { n: nf(n) });
+  const icon = Object.fromEntries(m.progress.map(x => [x.key, x.icon]));
+  const reached = m.log.length ? m.log.slice(0, 6).map(e => `<div class="it">
+      <div class="frame challenge">${tex(icon[e.key] || "item/nether_star")}</div>
+      <div><span class="adv-challenge">${esc(what(e.key, e.n))}</span>
+      <div class="t">${e.t ? fmtDate(e.t) + " · " : ""}${e.top ? `${t("together.top", { p: `<span style="color:${color(e.top)}">${esc(e.top)}</span>`, n: nf(e.top_n) })}` : ""}</div></div></div>`).join("")
+    : `<div class="empty">${t("together.empty")}</div>`;
+  const close = [...m.progress].sort((a, b) => b.value / b.next - a.value / a.next).slice(0, 6);
+  const bars = close.map(x => `<div class="row" data-tip="${esc(what(x.key, Math.floor(x.value)))}">
+      <span class="lbl">${tex(x.icon, "xs")} ${esc(what(x.key, x.next))}</span>
+      <span class="track"><i style="width:${Math.min(100, (100 * x.value) / x.next).toFixed(1)}%"></i></span>
+      <span class="rk"><b>${nf(Math.floor(x.value))}</b> / ${nf(x.next)}</span></div>`).join("");
+  return `<div class="grid two together">
+    <div class="panel"><h2>${tex("item/nether_star", "s")} ${t("together.title")}</h2><div class="feed">${reached}</div></div>
+    <div class="panel"><h2>${tex("item/experience_bottle", "s")} ${t("together.soon")}</h2>
+      <div class="cmp">${bars}</div><div class="note">${t("together.note")}</div></div>
+  </div>`;
+}
